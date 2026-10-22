@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "CutCut 抠图",
+  "short_name": "CutCut",
+  "version": "1.0.0",
+  "description": "在网页图片上右键，直接用本机 CutCut 抠出主体（离线运行，图片不出本机）。",
+  "minimum_chrome_version": "96",
+  "permissions": [
+    "contextMenus",
+    "storage",
+    "notifications",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "CutCut 抠图",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkkzlkp2CsC/biTz95qpegXdS8V20K9JDx0KGpJXP5ieSp1hAnaPkmGNkX+2r4OJGIzvu0UrqG66yWaxfuDkfX1iw72SE84YQ+jQ9HLG5MbKkEnZESt+zuFGMDKwhqHqun62WlWr5Px25CiO7nQfQeDtobSZXLcHfh86gJeJu6heT7VVViWV8hItLry1srTFNS4THilz368GaNj6gVSlDmmpsCG+7jYcISOYhwM3unVUari+kG4eP6ywyFDhl0ESEXB+I+Z1FjXfyb8Zb+ROOzZII4iV2oh01lepbBxDKyjb2Nmvn6IWbgnyFx4JxWTmR4O2sN9n2R6/Jq1tAxYrLnQIDAQAB"
+}

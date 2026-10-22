@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' file: data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline';" />
+<title>CutCut</title>
+<script>
+// 首屏防闪白/闪黑：用上次生效的主题先上色，真正的主题在 init 里再定
+(function () {
+  try {
+    var t = localStorage.getItem('cc.theme.effective')
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
+  } catch (e) {}
+})()
+</script>
+<style>
+  /* ===== 深色（默认） ===== */
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1e222b;
+    --line: #2a2f3a;
+    --fg: #e8ecf3;
+    --muted: #8b94a7;
+    --accent: #4c8dff;
+    --danger: #ff6b6b;
+    --radius: 12px;
+
+    --header-a: #191d25;
+    --header-b: #12151b;
+    --bar: #12151b;
+    --badge-bg: #232a36;
+    --ok-fg: #8ff0cc; --ok-bd: #1f6e57; --ok-bg: #10312a;
+    --warn-fg: #ffd08a; --warn-bd: #6e5320; --warn-bg: #322711;
+    --seg-on-bg: #1d3a6b; --seg-on-fg: #cfe0ff; --seg-on-bd: #3568b8;
+    --ghost-hover: #3c4557;
+    --drop-a: #1a2030; --drop-b: #0f1115; --drop-hot-a: #1d2b47; --drop-bd: #2f3644;
+    --chk-fg: #c8d4e6;
+    --name-fg: #cfd8e6;
+    --thumb-a: #1b1f27; --thumb-b: #252a34;
+    --ph-fg: #54607a;
+    --spin-bg: #0f1115cc; --spin-fg: #cfe0ff; --spin-ring: #2b3a55;
+    --prog-bg: #1b2230;
+    --scroll-thumb: #2c3341;
+    --acts-fg: #b9c6dd;
+    --shadow: #00000055;
+  }
+
+  /* ===== 浅色（白日） ===== */
+  :root[data-theme="light"] {
+    --bg: #f2f5fa;
+    --panel: #ffffff;
+    --panel-2: #eef2f8;
+    --line: #dbe2ec;
+    --fg: #1b2431;
+    --muted: #61708a;
+    --accent: #2f6fed;
+    --danger: #c93a3a;
+
+    --header-a: #ffffff;
+    --header-b: #eef2f9;
+    --bar: #ffffff;
+    --badge-bg: #eef2f8;
+    --ok-fg: #0c6b50; --ok-bd: #a9dfc9; --ok-bg: #e4f7ef;
+    --warn-fg: #8a5a06; --warn-bd: #efd49b; --warn-bg: #fdf3e0;
+    --seg-on-bg: #e2ecff; --seg-on-fg: #1c4c9e; --seg-on-bd: #a8c2ef;
+    --ghost-hover: #c3ccda;
+    --drop-a: #e8efff; --drop-b: #f5f7fb; --drop-hot-a: #dbe8ff; --drop-bd: #cbd5e4;
+    --chk-fg: #33415a;
+    --name-fg: #26303f;
+    --thumb-a: #eef1f6; --thumb-b: #dee4ee;
+    --ph-fg: #93a1b8;
+    --spin-bg: #f5f7fbdd; --spin-fg: #2a4f8f; --spin-ring: #cfdcf0;
+    --prog-bg: #e5ebf4;
+    --scroll-thumb: #c6d0de;
+    --acts-fg: #3d4a60;
+    --shadow: #8fa2c033;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 14px/1.5 "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+    display: flex; flex-direction: column; overflow: hidden;
+    user-select: none;
+    transition: background-color .22s ease, color .22s ease;
+  }
+  header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 18px; border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--header-a), var(--header-b));
+    -webkit-app-region: drag;
+    transition: background .22s ease, border-color .22s ease;
+  }
+  header > * { -webkit-app-region: no-drag; }
+  .logo {
+    width: 30px; height: 30px; border-radius: 9px; overflow: hidden;
+    display: grid; place-items: center; flex: 0 0 auto;
+  }
+  .logo img { width: 100%; height: 100%; display: block; }
+  h1 { font-size: 15px; margin: 0; font-weight: 600; letter-spacing: .2px; }
+  .badge {
+    font-size: 11px; padding: 3px 8px; border-radius: 999px;
+    background: var(--badge-bg); color: var(--muted); border: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .badge.ok { color: var(--ok-fg); border-color: var(--ok-bd); background: var(--ok-bg); }
+  .badge.warn { color: var(--warn-fg); border-color: var(--warn-bd); background: var(--warn-bg); }
+  .spacer { flex: 1; }
+
+  /* 主题切换（浅色 / 深色 / 自动） */
+  .theme {
+    display: flex; gap: 3px; padding: 3px;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+  }
+  .theme button {
+    padding: 4px 9px; border: 1px solid transparent; border-radius: 7px;
+    background: transparent; color: var(--muted); cursor: pointer;
+    font-size: 11.5px; line-height: 1.4; font-family: inherit;
+    transition: .15s;
+  }
+  .theme button:hover { color: var(--fg); }
+  .theme button.on {
+    background: var(--seg-on-bg); color: var(--seg-on-fg);
+    border-color: var(--seg-on-bd);
+  }
+
+  main { flex: 1; display: flex; min-height: 0; }
+
+  aside {
+    width: 296px; flex: 0 0 296px; border-right: 1px solid var(--line);
+    background: var(--panel); padding: 16px 16px 20px; overflow-y: auto;
+    transition: background-color .22s ease, border-color .22s ease;
+  }
+  .group { margin-bottom: 16px; }
+  .group h2 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .09em;
+    color: var(--muted); margin: 0 0 8px; font-weight: 600;
+  }
+  .row { margin-bottom: 10px; }
+  label.fld { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  select, input[type=text] {
+    width: 100%; padding: 8px 10px; border-radius: 9px;
+    background: var(--panel-2); color: var(--fg);
+    border: 1px solid var(--line); font-size: 13px; outline: none;
+    font-family: inherit;
+  }
+  select:focus, input[type=text]:focus { border-color: var(--accent); }
+  .seg { display: flex; gap: 6px; }
+  .seg button {
+    flex: 1; padding: 8px; border-radius: 9px; cursor: pointer;
+    background: var(--panel-2); color: var(--muted);
+    border: 1px solid var(--line); font-size: 12.5px; transition: .15s;
+    font-family: inherit;
+  }
+  .seg button.on { background: var(--seg-on-bg); color: var(--seg-on-fg); border-color: var(--seg-on-bd); }
+  .seg button:disabled { opacity: .4; cursor: not-allowed; }
+  .chk { display: flex; align-items: flex-start; gap: 9px; cursor: pointer; font-size: 12.5px; color: var(--chk-fg); }
+  .chk input { margin-top: 2px; width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; flex: none; }
+  /* flex 子项的 min-width 默认是 auto，长句会把侧栏顶出横向滚动条；必须显式归零 */
+  .chk > span { min-width: 0; }
+  /* 提示里会带不带空格的长路径（C:\Users\...\browser-ext），必须允许任意位置折行 */
+  .chk em { display: block; font-style: normal; font-size: 11px; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+  .hint { font-size: 11.5px; color: var(--muted); line-height: 1.5; overflow-wrap: anywhere; }
+  .extrow { display: flex; gap: 8px; margin-top: 9px; }
+  .extrow[hidden] { display: none; }
+  .kv { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; padding: 3px 0; }
+  .kv span:last-child { color: var(--fg); text-align: right; word-break: break-all; }
+
+  section.stage { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .toolbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--bar);
+    transition: background-color .22s ease, border-color .22s ease;
+  }
+  button.primary {
+    padding: 9px 16px; border-radius: 10px; border: 0; cursor: pointer;
+    background: linear-gradient(180deg, #5b98ff, #3f7ef0); color: #fff;
+    font-weight: 600; font-size: 13px; box-shadow: 0 4px 14px #2c62c740;
+    font-family: inherit;
+  }
+  button.primary:disabled { opacity: .45; cursor: default; box-shadow: none; }
+  button.ghost {
+    padding: 8px 13px; border-radius: 10px; cursor: pointer;
+    background: var(--panel-2); color: var(--fg);
+    border: 1px solid var(--line); font-size: 13px; font-family: inherit;
+    transition: .15s;
+  }
+  button.ghost:hover:not(:disabled) { border-color: var(--ghost-hover); }
+  button.ghost:disabled { opacity: .45; cursor: default; }
+
+  .drop {
+    flex: 1; margin: 18px; border-radius: 16px; border: 1.5px dashed var(--drop-bd);
+    display: grid; place-items: center; text-align: center; overflow: auto;
+    background: radial-gradient(1200px 500px at 50% -10%, var(--drop-a), var(--drop-b));
+    padding: 22px;
+    transition: background .22s ease, border-color .22s ease;
+  }
+  .drop.hot {
+    border-color: var(--accent);
+    background: radial-gradient(1200px 500px at 50% -10%, var(--drop-hot-a), var(--drop-b));
+  }
+  .empty h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
+  .empty p { margin: 0; color: var(--muted); font-size: 13px; }
+  .empty .kbd { color: var(--fg); opacity: .8; }
+
+  .grid {
+    width: 100%; display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden; display: flex; flex-direction: column; position: relative;
+    box-shadow: 0 1px 2px var(--shadow);
+  }
+  .card .thumb {
+    aspect-ratio: 1 / 1; display: grid; place-items: center; position: relative;
+    background-color: var(--thumb-a);
+    background-image:
+      linear-gradient(45deg, var(--thumb-b) 25%, transparent 25%, transparent 75%, var(--thumb-b) 75%),
+      linear-gradient(45deg, var(--thumb-b) 25%, transparent 25%, transparent 75%, var(--thumb-b) 75%);
+    background-size: 18px 18px; background-position: 0 0, 9px 9px;
+  }
+  .card .thumb img { max-width: 100%; max-height: 100%; display: block; }
+  .card .thumb .ph { color: var(--ph-fg); font-size: 12px; padding: 10px; text-align: center; }
+  .card .meta { padding: 8px 10px; border-top: 1px solid var(--line); }
+  .card .name {
+    font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    color: var(--name-fg);
+  }
+  .card .sub { font-size: 11px; color: var(--muted); margin-top: 2px; display: flex; justify-content: space-between; gap: 6px; }
+  .card .sub .err { color: var(--danger); }
+  .card .acts { display: flex; gap: 6px; padding: 0 10px 10px; }
+  .card .acts button {
+    flex: 1; font-size: 11.5px; padding: 6px; border-radius: 8px; cursor: pointer;
+    background: var(--panel-2); color: var(--acts-fg); border: 1px solid var(--line);
+    font-family: inherit; transition: .15s;
+  }
+  .card .acts button:hover:not(:disabled) { color: var(--fg); border-color: var(--ghost-hover); }
+  .card .acts button:disabled { opacity: .35; cursor: default; }
+  .spin {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    background: var(--spin-bg); backdrop-filter: blur(2px); font-size: 12px; color: var(--spin-fg);
+  }
+  .spin::after {
+    content: ""; width: 26px; height: 26px; border-radius: 50%;
+    border: 2.5px solid var(--spin-ring); border-top-color: var(--accent);
+    animation: rot .8s linear infinite; position: absolute; margin-top: -34px;
+  }
+  @keyframes rot { to { transform: rotate(360deg); } }
+
+  .progress { height: 3px; background: var(--prog-bg); position: relative; overflow: hidden; display: none; }
+  .progress.on { display: block; }
+  .progress i { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #2bd6a4, #4c8dff); transition: width .3s; }
+
+  footer {
+    padding: 8px 18px; border-top: 1px solid var(--line); background: var(--bar);
+    font-size: 12px; color: var(--muted); display: flex; gap: 14px; align-items: center;
+    transition: background-color .22s ease, border-color .22s ease;
+  }
+
+  /* ===== 模型下载（1.3 起模型不随包分发） ===== */
+  .mdown {
+    margin-top: 10px; padding: 10px; border-radius: 10px;
+    background: var(--panel-2); border: 1px solid var(--line);
+  }
+  .mbar { height: 6px; border-radius: 999px; background: var(--prog-bg); overflow: hidden; margin: 8px 0 6px; }
+  .mbar i {
+    display: block; height: 100%; width: 0; border-radius: 999px;
+    background: linear-gradient(90deg, #2bd6a4, #4c8dff); transition: width .25s;
+  }
+  .mtext { font-size: 11.5px; color: var(--muted); line-height: 1.55; min-height: 18px; }
+  .mrow { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  button.sm { padding: 6px 10px; font-size: 12px; border-radius: 8px; }
+
+  .modal {
+    position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 24px;
+    background: #00000088; backdrop-filter: blur(3px);
+  }
+  .sheet {
+    width: 100%; max-width: 470px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 16px; padding: 22px; box-shadow: 0 18px 60px #00000066;
+  }
+  .sheet h3 { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+  .sheet p { margin: 0 0 14px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+  .mopt {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 8px;
+    border: 1px solid var(--line); border-radius: 10px; cursor: pointer; background: var(--panel-2);
+    transition: .15s;
+  }
+  .mopt:hover { border-color: var(--ghost-hover); }
+  .mopt.on { border-color: var(--seg-on-bd); background: var(--seg-on-bg); }
+  .mopt b { font-size: 13px; font-weight: 600; }
+  .mopt em { font-size: 11.5px; color: var(--muted); font-style: normal; display: block; margin-top: 2px; }
+  .mopt .sz { margin-left: auto; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 8px; border: 2px solid var(--panel); }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><img src="../build/icon.png" alt="" /></div>
+  <h1>CutCut</h1>
+  <span class="badge" id="badgeBackend">离线运行</span>
+  <span class="badge" id="badgeModel">模型检查中…</span>
+  <div class="spacer"></div>
+  <span class="badge" id="badgePerf"></span>
+  <div class="theme" id="segTheme" title="外观：浅色 / 深色 / 自动（白天浅色，夜间深色）">
+    <button data-v="light" title="浅色">☀ 浅色</button>
+    <button data-v="dark" title="深色">☾ 深色</button>
+    <button data-v="auto" title="自动：07:00–19:00 浅色，其余深色">◐ 自动</button>
+  </div>
+</header>
+
+<main>
+  <aside>
+    <div class="group">
+      <h2>抠图模型</h2>
+      <div class="seg" id="segModel">
+        <button data-v="rmbg" class="on">RMBG-2.0</button>
+        <button data-v="birefnet">BiRefNet</button>
+      </div>
+      <div class="hint" id="modelHint" style="margin-top:8px">
+        BRIA 官方权重，质量最稳；仅限非商用。
+      </div>
+      <div class="hint" id="modelWarn" style="margin-top:6px;display:none;color:var(--warn-fg)"></div>
+
+      <!-- 模型未安装时出现：下载 / 导入 / 打开目录 -->
+      <div class="mdown" id="modelDown" style="display:none">
+        <div class="mtext" id="mdText">该模型尚未下载。</div>
+        <div class="mbar"><i id="mdBar"></i></div>
+        <div class="mrow">
+          <button class="primary sm" id="mdGet">下载（<span id="mdSize">—</span>）</button>
+          <button class="ghost sm" id="mdImport">从本地导入</button>
+          <button class="ghost sm" id="mdOpen">打开目录</button>
+          <button class="ghost sm" id="mdRemove" style="display:none">删除模型</button>
+          <button class="ghost sm" id="mdCancel" style="display:none">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="group" id="localOpts">
+      <h2>加速设备</h2>
+      <div class="seg" id="segProvider">
+        <button data-v="auto" class="on">自动</button>
+        <button data-v="dml">GPU</button>
+        <button data-v="cpu">CPU</button>
+      </div>
+      <div class="hint" style="margin-top:8px">自动 = 优先 DirectML GPU，失败回退 CPU。</div>
+
+      <label class="chk" style="margin-top:12px">
+        <input type="checkbox" id="edgeRefine" checked />
+        <span>边缘优化<em>去白边 / 去杂点，发丝更干净</em></span>
+      </label>
+    </div>
+
+    <div class="group">
+      <h2>输出</h2>
+      <div class="row">
+        <label class="fld">保存位置</label>
+        <button class="ghost" id="btnOutput" style="width:100%;text-align:left;font-size:12px;color:var(--muted)">
+          原图同目录 / cutout
+        </button>
+      </div>
+      <div class="row">
+        <label class="fld">文件名后缀</label>
+        <input type="text" id="suffix" value="-cutout" />
+      </div>
+      <div class="hint">输出为带 Alpha 的透明 PNG，保留原始分辨率。</div>
+    </div>
+
+    <div class="group">
+      <h2>系统集成</h2>
+      <label class="chk">
+        <input type="checkbox" id="optMenu" />
+        <span>图片右键菜单<em>资源管理器里右键图片 → 用 CutCut 抠出主体</em></span>
+      </label>
+      <label class="chk" style="margin-top:10px">
+        <input type="checkbox" id="optExt" />
+        <span>网页图片右键抠图<em id="extHint">准备扩展目录后，在浏览器扩展页加载一次即可</em></span>
+      </label>
+      <div class="extrow" id="extRow" hidden>
+        <button class="ghost sm" id="btnExtPage">打开扩展页</button>
+        <button class="ghost sm" id="btnExtDir">显示扩展目录</button>
+      </div>
+      <div class="hint" id="integHint" style="margin-top:9px">
+        复制一张图片后按 <span class="kbd">Ctrl+Alt+X</span> 也能直接抠出主体。
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>运行信息</h2>
+      <div class="kv"><span>模型</span><span id="iModel">—</span></div>
+      <div class="kv"><span>体积</span><span id="iSize">—</span></div>
+      <div class="kv"><span>设备</span><span id="iDevice">—</span></div>
+      <div class="kv"><span>CPU 线程</span><span id="iCpu">—</span></div>
+      <div class="kv"><span>版本</span><span id="iVer">—</span></div>
+    </div>
+  </aside>
+
+  <section class="stage">
+    <div class="toolbar">
+      <button class="primary" id="btnAdd">添加图片</button>
+      <button class="primary" id="btnRun" disabled>开始抠图</button>
+      <button class="ghost" id="btnClear" disabled>清空</button>
+      <div class="spacer"></div>
+      <button class="ghost" id="btnFolder" disabled>打开输出目录</button>
+    </div>
+    <div class="progress" id="progress"><i></i></div>
+    <div class="drop" id="drop">
+      <div class="empty" id="empty">
+        <h3>把图片拖进来</h3>
+        <p>支持 PNG / JPG / WEBP / BMP / TIFF，可一次拖入多张<br />
+           也可以点左上角 <span class="kbd">添加图片</span>（Ctrl+O）</p>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span id="status">就绪</span>
+  <div class="spacer"></div>
+  <span id="counter"></span>
+</footer>
+
+<script>
+const $ = (s) => document.querySelector(s)
+const state = {
+  items: [],        // { id, path, name, status, dataUrl, outPath, ms, error }
+  running: false,
+  settings: null,
+  info: null,
+  outputDir: '',
+  theme: 'auto',
+}
+
+function setStatus (t) { $('#status').textContent = t }
+function fmtMs (ms) { return ms >= 1000 ? (ms / 1000).toFixed(1) + 's' : ms + 'ms' }
+
+// ---------- 主题 ----------
+const DAY_START = 7   // 07:00 起用浅色
+const DAY_END = 19    // 19:00 起用深色
+
+function isDaytime (d = new Date()) {
+  const h = d.getHours()
+  return h >= DAY_START && h < DAY_END
+}
+
+/** auto 时按时间决定：白天浅色，夜间深色 */
+function effectiveTheme (mode) {
+  if (mode === 'light' || mode === 'dark') return mode
+  return isDaytime() ? 'light' : 'dark'
+}
+
+function applyTheme (mode, opts = {}) {
+  const eff = effectiveTheme(mode)
+  document.documentElement.dataset.theme = eff
+  try { localStorage.setItem('cc.theme.effective', eff) } catch (e) {}
+  document.querySelectorAll('#segTheme button').forEach(b => b.classList.toggle('on', b.dataset.v === mode))
+  state.theme = mode
+  if (opts.persist) window.api.setSettings({ theme: mode })
+}
+
+/** auto 模式每分钟对一次表，跨过 07:00 / 19:00 自动换肤 */
+let autoTickId = null
+function startAutoThemeWatch () {
+  if (autoTickId) clearInterval(autoTickId)
+  let last = document.documentElement.dataset.theme
+  autoTickId = setInterval(() => {
+    if (state.theme !== 'auto') return
+    const eff = effectiveTheme('auto')
+    if (eff !== last) { last = eff; applyTheme('auto') }
+  }, 30000)
+}
+
+function updateCounter () {
+  const done = state.items.filter(i => i.status === 'done').length
+  const fail = state.items.filter(i => i.status === 'error').length
+  const parts = []
+  if (state.items.length) parts.push(`共 ${state.items.length} 张`)
+  if (done) parts.push(`完成 ${done}`)
+  if (fail) parts.push(`失败 ${fail}`)
+  $('#counter').textContent = parts.join(' · ')
+  $('#btnClear').disabled = state.running || !state.items.length
+  $('#btnRun').disabled = state.running || !state.items.some(i => i.status === 'pending')
+  $('#btnFolder').disabled = !state.items.some(i => i.outPath)
+}
+
+function cardEl (item) {
+  const el = document.createElement('div')
+  el.className = 'card'
+  el.dataset.id = item.id
+  const thumb = item.dataUrl
+    ? `<img src="${item.dataUrl}" alt="" />`
+    : `<div class="ph">${item.status === 'error' ? '处理失败' : '待处理'}</div>`
+  const sub = item.status === 'done'
+    ? `<div class="sub"><span>${item.ms ? fmtMs(item.ms) : ''}</span><span>${item.provider === 'cpu' ? 'CPU' : 'GPU'}</span></div>`
+    : item.status === 'error'
+      ? `<div class="sub"><span class="err">${escapeHtml(item.error || '失败')}</span></div>`
+      : `<div class="sub"><span>${fmtSize(item.size)}</span><span>待处理</span></div>`
+  el.innerHTML = `
+    <div class="thumb">${thumb}${item.status === 'running' ? '<div class="spin">抠图中</div>' : ''}</div>
+    <div class="meta">
+      <div class="name" title="${escapeAttr(item.path)}">${escapeHtml(item.name)}</div>
+      ${sub}
+    </div>
+    <div class="acts">
+      <button data-act="save" ${item.status === 'done' ? '' : 'disabled'}>另存为</button>
+      <button data-act="reveal" ${item.outPath ? '' : 'disabled'}>定位</button>
+      <button data-act="remove" ${state.running ? 'disabled' : ''}>移除</button>
+    </div>`
+  el.querySelector('[data-act=save]').onclick = async () => {
+    const p = await window.api.saveAs({
+      dataUrl: item.dataUrl,
+      suggested: item.outPath || item.name.replace(/\.[^.]+$/, '') + '-cutout.png',
+    })
+    if (p) { setStatus('已另存：' + p); window.api.showItem(p) }
+  }
+  el.querySelector('[data-act=reveal]').onclick = () => window.api.showItem(item.outPath)
+  el.querySelector('[data-act=remove]').onclick = () => {
+    state.items = state.items.filter(i => i.id !== item.id)
+    render()
+  }
+  return el
+}
+
+function escapeHtml (s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])) }
+function escapeAttr (s) { return escapeHtml(s) }
+function fmtSize (b) { return !b ? '—' : b > 1048576 ? (b / 1048576).toFixed(1) + 'MB' : Math.round(b / 1024) + 'KB' }
+
+function render () {
+  const grid = $('#grid')
+  grid.innerHTML = ''
+  $('#empty').style.display = state.items.length ? 'none' : 'block'
+  const frag = document.createDocumentFragment()
+  for (const it of state.items) frag.appendChild(cardEl(it))
+  grid.appendChild(frag)
+  updateCounter()
+}
+
+let seq = 0
+function addPaths (paths) {
+  const seen = new Set(state.items.map(i => i.path))
+  for (const p of paths) {
+    if (!p || seen.has(p)) continue
+    const name = p.split(/[\\/]/).pop()
+    state.items.push({ id: ++seq, path: p, name, status: 'pending', size: 0 })
+    seen.add(p)
+  }
+  render()
+  for (const it of state.items) {
+    if (it.size === 0) window.api.info().then(() => {})
+  }
+  updateCounter()
+}
+
+async function runQueue () {
+  if (state.running) return
+  // 模型没装就别让用户白等：直接把下载面板顶到眼前
+  const m = (state.info.models || []).find(x => x.id === (state.settings.model || 'rmbg')) || {}
+  if (!m.available) {
+    $('#modelDown').style.display = ''
+    setStatus('还没有下载模型，先点「下载」或「从本地导入」')
+    $('#mdGet').focus()
+    return
+  }
+  state.running = true
+  render()
+  const todo = state.items.filter(i => i.status === 'pending' || i.status === 'error')
+  let n = 0
+  for (const item of todo) {
+    item.status = 'running'; item.error = ''
+    render()
+    setStatus(`正在处理 ${item.name}（${n + 1}/${todo.length}）`)
+    const res = await window.api.cutout({
+      inputPath: item.path, save: true,
+      outputDir: state.outputDir, index: n,
+    })
+    if (res.ok) {
+      Object.assign(item, {
+        status: 'done', dataUrl: res.dataUrl, outPath: res.outPath,
+        ms: res.ms, provider: res.provider,
+      })
+    } else {
+      item.status = 'error'; item.error = res.error
+    }
+    n++
+    $('#progress i').style.width = Math.round((n / todo.length) * 100) + '%'
+    render()
+    await new Promise(r => setTimeout(r, 0))
+  }
+  state.running = false
+  $('#progress').classList.remove('on')
+  $('#progress i').style.width = '0'
+  const ok = todo.filter(i => i.status === 'done').length
+  setStatus(`本轮完成 ${ok}/${todo.length}`)
+  render()
+}
+
+// ---- init ----
+async function init () {
+  state.info = await window.api.info()
+  state.settings = await window.api.getSettings()
+  const s = state.settings, info = state.info
+
+  // 主题：先用设置里的，缺省 auto
+  applyTheme(s.theme || 'auto')
+  startAutoThemeWatch()
+  document.querySelectorAll('#segTheme button').forEach(b => {
+    b.onclick = () => applyTheme(b.dataset.v, { persist: true })
+  })
+
+  const cur = (info.models || []).find(m => m.id === (s.model || 'rmbg')) ||
+    (info.models || [])[0] || { id: 'rmbg', label: 'RMBG-2.0' }
+  $('#iModel').textContent = cur.available ? cur.fileName : '缺失'
+  $('#iSize').textContent = cur.sizeMB ? cur.sizeMB + ' MB' : '—'
+  $('#iCpu').textContent = info.cpus + ' 核 / ' + info.threads + ' 线程'
+  $('#iVer').textContent = 'v' + info.version + ' · Electron ' + info.electron
+  $('#badgePerf').textContent = info.dml ? 'Windows · GPU 加速可用' : 'CPU 模式'
+
+  const mb = $('#badgeModel')
+  if (cur.available) {
+    mb.textContent = '模型已就绪 · ' + cur.label
+    mb.className = 'badge ok'
+  } else {
+    mb.textContent = '缺少模型文件'
+    mb.className = 'badge warn'
+  }
+
+  $('#suffix').value = s.suffix
+  state.outputDir = s.outputDir || ''
+  if (s.outputDir) $('#btnOutput').textContent = s.outputDir
+
+  // ---- 模型下载 / 导入（1.3 起模型不随包分发） ----
+  // 注意：mdBusy 必须在第一次 syncModelUI 之前声明，否则会命中 TDZ
+  const mdBusy = { id: null }
+
+  bindSeg('#segModel', cur.id, (v) => {
+    window.api.setSettings({ model: v })
+    state.settings.model = v
+    syncModelUI(v)
+  })
+  // 初始化模型说明
+  syncModelUI(cur.id)
+
+  function setDownVisible (visible) { $('#modelDown').style.display = visible ? '' : 'none' }
+
+  function syncModelUI (modelId) {
+    const m = (state.info.models || []).find(x => x.id === modelId) || {}
+    $('#modelHint').textContent = m.note || ''
+    const warn = $('#modelWarn')
+    if (!m.available) {
+      warn.style.display = ''
+      warn.textContent = m.broken
+        ? '已有同名文件但体积不符，可能不是本应用支持的模型。'
+        : '该模型尚未安装，点下方按钮下载后即可离线使用。'
+    } else {
+      warn.style.display = 'none'
+    }
+    $('#iModel').textContent = m.available ? m.fileName : '未安装'
+    $('#iSize').textContent = m.sizeMB ? m.sizeMB + ' MB' : '—'
+    $('#badgeModel').textContent = m.available ? '模型已就绪 · ' + m.label : '缺少模型文件'
+    $('#badgeModel').className = 'badge ' + (m.available ? 'ok' : 'warn')
+    $('#mdSize').textContent = (m.downloadMB || '—') + ' MB'
+    const busy = mdBusy.id === modelId
+    setDownVisible(!m.available || busy)
+    $('#mdGet').style.display = (m.available || busy) ? 'none' : ''
+    $('#mdImport').style.display = (m.available || busy) ? 'none' : ''
+    $('#mdOpen').style.display = busy ? 'none' : ''
+    $('#mdRemove').style.display = (m.available && !busy) ? '' : 'none'
+    $('#mdCancel').style.display = busy ? '' : 'none'
+    if (!busy) {
+      $('#mdText').textContent = m.available
+        ? '已安装：' + m.fileName + '（' + m.sizeMB + ' MB）'
+        : (m.partialMB > 0
+            ? `已下载 ${m.partialMB} MB / ${m.downloadMB} MB，可继续续传。`
+            : `该模型约 ${m.downloadMB} MB，下载一次后即可离线使用。`)
+      $('#mdBar').style.width = '0%'
+    }
+    syncProvider(modelId)
+  }
+
+  function fmtSpeed (b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB/s' : (b / 1024).toFixed(0) + ' KB/s' }
+
+  window.api.onModelProgress((p) => {
+    if (p.id !== mdBusy.id && p.phase !== 'error') return
+    const m = (state.info.models || []).find(x => x.id === p.id) || {}
+    if (p.phase === 'download') {
+      $('#mdBar').style.width = p.percent.toFixed(1) + '%'
+      $('#mdText').textContent =
+        `下载中 ${(p.received / 1048576).toFixed(1)} / ${(p.total / 1048576).toFixed(0)} MB` +
+        `（${p.percent.toFixed(0)}%）` + (p.speed ? ' · ' + fmtSpeed(p.speed) : '')
+      setStatus(`正在下载 ${m.label || p.id} … ${p.percent.toFixed(0)}%`)
+    } else if (p.phase === 'verify') {
+      $('#mdBar').style.width = p.percent.toFixed(1) + '%'
+      $('#mdText').textContent = `正在校验文件完整性 ${p.percent.toFixed(0)}%（SHA-256）…`
+      setStatus(`校验 ${m.label || p.id} …`)
+    } else if (p.phase === 'done') {
+      $('#mdBar').style.width = '100%'
+      setStatus(`${m.label || p.id} 下载完成`)
+    } else if (p.phase === 'error') {
+      $('#mdText').textContent = '失败：' + p.error
+      setStatus(`下载失败：${p.error}`)
+    }
+  })
+
+  async function refreshModels () {
+    const list = await window.api.modelList()
+    state.info.models = list
+    syncModelUI(state.settings.model || 'rmbg')
+    return list
+  }
+
+  async function doDownload () {
+    const id = state.settings.model || 'rmbg'
+    mdBusy.id = id
+    syncModelUI(id)
+    setStatus('开始下载 ' + ((state.info.models || []).find(x => x.id === id) || {}).label)
+    const r = await window.api.modelDownload(id)
+    mdBusy.id = null
+    if (r.ok) {
+      await refreshModels()
+      setStatus('下载完成，可以开始抠图了')
+    } else {
+      await refreshModels()
+      $('#mdText').textContent = '失败：' + r.error
+      setStatus('下载失败：' + r.error)
+    }
+  }
+
+  async function doImport () {
+    const id = state.settings.model || 'rmbg'
+    mdBusy.id = id
+    syncModelUI(id)
+    const r = await window.api.modelImport(id)
+    mdBusy.id = null
+    if (r.canceled) { syncModelUI(id); return }
+    await refreshModels()
+    if (r.ok) setStatus('已导入本地模型')
+    else { $('#mdText').textContent = '导入失败：' + r.error; setStatus('导入失败：' + r.error) }
+  }
+
+  async function doRemove () {
+    const id = state.settings.model || 'rmbg'
+    const m = (state.info.models || []).find(x => x.id === id) || {}
+    if (!confirm(`确定删除已安装的 ${m.label || id} 模型吗？\n下次使用需要重新下载（约 ${m.downloadMB} MB）。`)) return
+    const r = await window.api.modelRemove(id)
+    await refreshModels()
+    if (r.ok) setStatus('已删除本地模型文件')
+  }
+
+  $('#mdGet').onclick = doDownload
+  $('#mdImport').onclick = doImport
+  $('#mdOpen').onclick = () => window.api.modelOpenDir()
+  $('#mdRemove').onclick = doRemove
+  $('#mdCancel').onclick = async () => { await window.api.modelCancel(mdBusy.id); setStatus('已取消下载') }
+
+  // 首次启动：一个模型都没有时，自动打开下载面板并提示
+  if (!(info.models || []).some(x => x.available)) {
+    setStatus('首次使用需要先下载一个模型（约 500–930 MB），下载后可完全离线使用')
+  }
+
+  // ---- 系统集成：资源管理器右键菜单 / 浏览器扩展 ----
+  let integState = null
+
+  function renderInteg () {
+    if (!integState) return
+    const on = integState.platform === 'win32'
+    $('#optMenu').checked = !!(integState.menu && integState.menu.installed)
+    $('#optMenu').disabled = !on
+    const ext = integState.ext || {}
+    const extReady = on && !!ext.installed
+    $('#optExt').checked = extReady
+    $('#optExt').disabled = !on
+    $('#extRow').hidden = !extReady
+
+    // 新版 Edge/Chrome 已屏蔽注册表外置的自签扩展，所以改为「准备目录 + 手动加载一次」。
+    // 文案要说清楚这一步，否则用户会以为勾上就直接生效。
+    // 目录路径很长，放 title 里做悬停提示，正文只给步骤，避免侧栏被撑高。
+    const dir = ext.dir || ''
+    $('#extHint').textContent = on
+      ? (extReady
+          ? '扩展目录已就绪。点「打开扩展页」→ 开启开发者模式 →「加载解压缩的扩展」→ 选该目录。'
+          : '勾选后会准备好扩展目录，再在浏览器扩展页里加载一次；也可直接用下面的 Ctrl+Alt+X。')
+      : '仅 Windows 支持；其他平台请用下面的热键。'
+    $('#extHint').title = dir
+  }
+
+  async function refreshInteg () {
+    try { integState = await window.api.integrationState() } catch { integState = null }
+    renderInteg()
+  }
+
+  $('#optMenu').onchange = async (e) => {
+    const want = e.target.checked
+    e.target.disabled = true
+    const r = await window.api.setExplorerMenu(want)
+    e.target.disabled = false
+    if (!r.ok) {
+      e.target.checked = !want
+      setStatus('设置右键菜单失败：' + r.error)
+      return
+    }
+    integState = r.state
+    renderInteg()
+    setStatus(want ? '已添加图片右键菜单（资源管理器需重新打开窗口生效）' : '已移除图片右键菜单')
+  }
+
+  $('#optExt').onchange = async (e) => {
+    const want = e.target.checked
+    e.target.disabled = true
+    const r = await window.api.setBrowserExt(want)
+    e.target.disabled = false
+    if (!r.ok) {
+      e.target.checked = !want
+      setStatus('设置浏览器扩展失败：' + r.error)
+      return
+    }
+    integState = r.state
+    renderInteg()
+    setStatus(want
+      ? '扩展目录已准备好：点「打开扩展页」→ 开启开发者模式 →「加载解压缩的扩展」→ 选 ' + ((r.state.ext && r.state.ext.dir) || '')
+      : '已移除扩展目录（浏览器里已加载的那份请在扩展页手动移除）')
+  }
+
+  $('#btnExtPage').onclick = async () => {
+    const r = await window.api.openExtPage()
+    if (!r.ok) setStatus('打开扩展页失败：' + r.error)
+    else setStatus('已打开 ' + r.browser + ' 的扩展页；开启「开发者模式」后点「加载解压缩的扩展」')
+  }
+  $('#btnExtDir').onclick = async () => {
+    const r = await window.api.showExtDir()
+    if (!r.ok) setStatus('打开扩展目录失败：' + r.error)
+    else setStatus('扩展目录：' + r.dir)
+  }
+
+  refreshInteg()
+
+  // 主进程把图片送进来：资源管理器右键、浏览器扩展、剪贴板热键
+  window.api.onOpenFiles((list) => {
+    if (!list || !list.length) return
+    addPaths(list)
+    setStatus(`已收到 ${list.length} 张图片，按 Ctrl+Enter 开始`)
+  })
+  window.api.onToast((msg) => setStatus(msg))
+  // 监听挂好了再告诉主进程——它会把启动时排队（--cutout/桥）的图片发过来
+  window.api.ready()
+
+  bindSeg('#segProvider', s.provider, (v) => { window.api.setSettings({ provider: v }); syncDeviceLabel(v) })
+  $('#edgeRefine').checked = s.edgeRefine !== false
+  $('#edgeRefine').onchange = (e) => window.api.setSettings({ edgeRefine: e.target.checked })
+
+  $('#btnAdd').onclick = async () => addPaths(await window.api.pickImages())
+  $('#btnRun').onclick = runQueue
+  $('#btnClear').onclick = () => { if (!state.running) { state.items = []; render() } }
+  $('#btnFolder').onclick = () => {
+    const p = state.items.find(i => i.outPath)
+    window.api.showItem(p ? p.outPath : '')
+  }
+  $('#btnOutput').onclick = async () => {
+    const d = await window.api.pickOutput()
+    if (d) { state.outputDir = d; $('#btnOutput').textContent = d; window.api.setSettings({ outputDir: d }) }
+  }
+  $('#suffix').onchange = (e) => window.api.setSettings({ suffix: e.target.value })
+
+  // 拖拽
+  const drop = $('#drop')
+  let depth = 0
+  drop.addEventListener('dragenter', (e) => { e.preventDefault(); depth++; drop.classList.add('hot') })
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy' })
+  drop.addEventListener('dragleave', () => { if (--depth <= 0) { depth = 0; drop.classList.remove('hot') } })
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault(); depth = 0; drop.classList.remove('hot')
+    const paths = []
+    for (const f of e.dataTransfer.files) {
+      const p = window.api.pathForFile(f)
+      if (p) paths.push(p)
+    }
+    if (paths.length) addPaths(paths)
+    else setStatus('未能读取拖入文件路径')
+  })
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key.toLowerCase() === 'o') { e.preventDefault(); $('#btnAdd').click() }
+    if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); if (!$('#btnRun').disabled) runQueue() }
+    // Ctrl+Shift+L：浅色 / 深色 一键对调
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'l') {
+      e.preventDefault()
+      applyTheme(effectiveTheme(state.theme) === 'light' ? 'dark' : 'light', { persist: true })
+    }
+  })
+  // 防止整页被拖入文件时跳转
+  window.addEventListener('dragover', (e) => e.preventDefault())
+  window.addEventListener('drop', (e) => e.preventDefault())
+
+  $('#iDevice').textContent = s.provider === 'cpu' ? 'CPU' : (info.dml ? 'DirectML (GPU)' : 'CPU')
+  syncProvider(cur.id)
+  render()
+}
+
+// BiRefNet 在 DirectML 上必崩，选中它时把 GPU 选项禁掉，免得用户白等一次失败
+function syncProvider (modelId) {
+  const m = (state.info.models || []).find(x => x.id === modelId) || {}
+  const gpuOk = state.info.dml && m.gpu !== false
+  const gpuBtn = document.querySelector('#segProvider button[data-v="dml"]')
+  if (gpuBtn) {
+    gpuBtn.disabled = !gpuOk
+    gpuBtn.title = gpuOk ? '' : (m.gpu === false ? '该模型不支持 GPU 加速，只能用 CPU' : '本机无 GPU 加速')
+  }
+  const autoBtn = document.querySelector('#segProvider button[data-v="auto"]')
+  if (autoBtn) autoBtn.title = gpuOk ? '' : '将使用 CPU'
+  syncDeviceLabel(state.settings.provider)
+}
+
+function syncDeviceLabel (provider) {
+  const m = (state.info.models || []).find(x => x.id === (state.settings.model || 'rmbg')) || {}
+  const gpuOk = state.info.dml && m.gpu !== false
+  $('#iDevice').textContent = (provider === 'cpu' || !gpuOk) ? 'CPU' : 'DirectML (GPU)'
+}
+
+function bindSeg (sel, cur, onChange) {
+  const wrap = $(sel)
+  const apply = (v) => {
+    wrap.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === v))
+  }
+  apply(cur)
+  wrap.querySelectorAll('button').forEach(b => {
+    b.onclick = () => { apply(b.dataset.v); onChange(b.dataset.v) }
+  })
+}
+
+init().catch(e => setStatus('初始化失败：' + e.message))
+</script>
+</body>
+</html>

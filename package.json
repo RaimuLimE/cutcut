@@ -1,0 +1,99 @@
+{
+  "name": "cutcut",
+  "version": "1.4.0",
+  "description": "CutCut - 本地离线一键抠图（RMBG-2.0 / BiRefNet 双模型，模型首次运行按需下载）",
+  "main": "src/main.js",
+  "author": "DeepSeek Harness",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "onnxruntime-node": "1.23.2",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "electron": "44.9.0",
+    "electron-builder": "^26.15.3"
+  },
+  "scripts": {
+    "start": "electron .",
+    "icons": "node scripts/make-icon.cjs && node scripts/make-ext-icons.cjs && node scripts/make-crx.cjs",
+    "verify": "node scripts/verify-models.cjs",
+    "dist": "electron-builder --win nsis --x64"
+  },
+  "build": {
+    "appId": "com.deepseekharness.cutcut",
+    "productName": "CutCut",
+    "copyright": "RMBG-2.0 (BRIA AI, CC BY-NC 4.0) · BiRefNet (MIT) · 本封装 MIT",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "compression": "maximum",
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
+    "files": [
+      "src/**/*",
+      "renderer/**/*",
+      "build/icon.png",
+      "package.json",
+      "!models/**",
+      "!scripts/**",
+      "!dist/**",
+      "!node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
+      "!node_modules/onnxruntime-node/bin/napi-v6/linux/**",
+      "!node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/**",
+      "!node_modules/onnxruntime-node/**/*.pdb",
+      "!node_modules/**/{test,tests,__tests__,example,examples,docs,doc}/**",
+      "!node_modules/**/*.{md,markdown,map,d.ts,ts,flow,coffee}",
+      "!node_modules/**/{.github,.vscode,.idea}/**"
+    ],
+    "asarUnpack": [
+      "node_modules/onnxruntime-node/bin/**",
+      "node_modules/sharp/**",
+      "node_modules/@img/**"
+    ],
+    "extraResources": [
+      {
+        "from": "browser-ext",
+        "to": "browser-ext",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "CutCut-Setup-${version}.${ext}",
+      "executableName": "CutCut"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "installerLanguages": [
+        "zh_CN"
+      ],
+      "language": "2052",
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "CutCut",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "CutCut-Setup-${version}.${ext}",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+# 依赖
+node_modules/
+
+# 构建产物
+dist/
+out/
+release/
+
+# 模型文件（体积大，首次运行由应用自动下载到 %APPDATA%\cutcut\models）
+models/
+*.onnx
+*.onnx.data
+*.part
+
+# 扩展私钥：绝不能入库
+build/ext-key.pem
+*.pem
+*.key
+*.p12
+*.pfx
+
+# 运行时/调试产物
+/verify/
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# 环境与编辑器
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+*.swp

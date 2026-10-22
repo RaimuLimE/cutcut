@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" width="512" height="512">
+  <defs>
+    <clipPath id="rounded-icon">
+      <rect width="512" height="512" rx="64" />
+    </clipPath>
+    <pattern id="checkerboard" width="58" height="58" patternUnits="userSpaceOnUse" x="12" y="-2">
+      <rect width="58" height="58" fill="#FFFFFF" />
+      <path fill="#10121B" fill-opacity="0.14" d="M0 0H29V29H0ZM29 29H58V58H29Z" />
+    </pattern>
+  </defs>
+  <g id="icon" clip-path="url(#rounded-icon)">
+    <rect id="background" width="512" height="512" fill="url(#checkerboard)" />
+    <g id="hat-crown">
+      <path fill="#2D3D62" d="M181 155 346 102Q352 99 356 106L417 211 369 184 374 218Z" />
+      <polygon fill="#10121B" points="367,153 417,211 369,184" />
+      <path id="hat-ribbon" fill="#FFE276" d="M157 163Q200 131 255 160 335 194 408 261 446 295 449 316L458 358Q367 278 280 221 211 178 157 163Z" />
+      <path id="brim-underside" fill="#10121B" d="M-20 132Q139 144 262 242L492 408Q528 444 512 475 464 492 397 457L-20 251Z" />
+    </g>
+    <g id="hair-back">
+      <path fill="#FFE276" d="M-18 289Q42 220 120 184 216 174 310 271 403 358 399 443L409 489 370 530H-12Z" />
+      <ellipse id="side-bun" cx="405" cy="494" rx="54" ry="52" fill="#F8BE49" transform="rotate(24 405 494)" />
+      <path id="bun-fold" fill="#FFE276" d="M393 457Q440 458 447 506 423 474 387 479Z" />
+    </g>
+    <ellipse cx="187" cy="407" rx="149" ry="169" fill="#FFF2DF" transform="rotate(25 187 407)" id="face" />
+    <g id="hair-front">
+      <path id="left-lock" fill="#FFE276" d="M151 199Q67 219 12 282-17 322-5 411-5 478 28 500L53 514Q18 477 19 411L37 458 60 482Q29 431 49 365 80 286 151 246Z" />
+      <path id="left-shadow" fill="#F8BE49" d="M153 204Q97 248 49 359 59 304 99 246Z" />
+      <path id="swept-fringe" fill="#F8BE49" d="M153 201Q271 231 344 308 391 353 397 430L359 454Q268 423 220 373 166 310 153 201Z" />
+      <path id="fringe-highlight" fill="#FFE276" d="M153 201Q184 228 209 254 228 343 282 395L329 423Q289 414 256 388 218 355 196 331 204 375 229 408 188 387 172 338 146 274 153 201Z" />
+      <path id="right-lock" fill="#FFE276" d="M352 398Q376 449 365 497L350 531H315Q337 499 341 465L318 512Q327 478 322 442Z" />
+      <path id="hair-leaf" fill="#687F42" d="M327 425Q331 375 382 371 373 410 327 425Z" />
+    </g>
+    <path id="brim" fill="#2D3D62" d="M-20 132Q73 127 174 162 330 212 441 341 491 388 529 446L512 441Q398 381 301 315 207 247 121 191 55 152-20 137Z" />
+    <g id="lemon-badge">
+      <circle cx="382" cy="260" r="48" fill="#FFE276" />
+      <circle cx="382" cy="260" r="41" fill="#FFF2DF" />
+      <circle cx="382" cy="260" r="34" fill="#FFE276" />
+      <path id="lemon-segments" stroke="#FFF2DF" stroke-width="4" stroke-linecap="round" d="M367 229 397 291M348 257 416 263M362 287 402 233" />
+    </g>
+    <g id="face-details" fill="#10121B" opacity="1">
+      <rect id="capsule-eye" x="99" y="346" width="28" height="70" rx="14" fill="#10121B" transform="rotate(25 113 381)" />
+      <ellipse cx="76" cy="428" rx="22" ry="12" transform="rotate(25 76 428)" fill="#FFB5A3" class="blush" />
+      <ellipse cx="251" cy="492" rx="22" ry="12" transform="rotate(25 251 492)" fill="#FFB5A3" class="blush" />
+      <g id="scissors-symbol" stroke="#10121B" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="240" cy="421" r="13" fill="#FFF2DF" stroke-width="9" stroke="#10121B" stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="221" cy="461" r="12" fill="#FFF2DF" stroke-width="9" stroke="#10121B" stroke-linecap="round" stroke-linejoin="round" />
+        <path id="scissors-blades" fill="#10121B" stroke-width="3" d="M247 431 254 447 279 481Q283 489 276 488L252 464 234 467 230 458 248 451ZM269 442 282 439Q294 439 297 452L274 457Z" stroke="#10121B" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+    </g>
+  </g>
+</svg>
