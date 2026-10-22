@@ -6,7 +6,7 @@
   <img src="docs/screenshots/app-dark.png" width="820" alt="CutCut 深色主题">
 </p>
 
-**下载安装包**：[**CutCut-Setup-1.4.0.exe**](https://github.com/RaimuLimE/cutcut/releases/latest) · 123 MB · Windows 10/11 x64
+**下载安装包**：[**CutCut-Setup-1.4.1.exe**](https://github.com/RaimuLimE/cutcut/releases/latest) · 123 MB · Windows 10/11 x64
 
 ---
 
@@ -30,7 +30,7 @@
 | **保留原分辨率** | 1024² 推理后双三次上采样回原图尺寸 |
 | **四种入口** | 拖进窗口 · 资源管理器右键图片 · 浏览器右键网页图片 · `Ctrl+Alt+X` 抠剪贴板 |
 | **深浅色主题** | 浅色 / 深色 / **自动**（07:00–19:00 浅色，其余深色） |
-| **自定义安装位置** | 安装向导里可改路径 |
+| **自定义安装位置** | 安装向导里可改路径，数据目录也能单独指定到别的盘 |
 
 <p align="center">
   <img src="docs/screenshots/app-light.png" width="820" alt="CutCut 浅色主题">
@@ -38,13 +38,15 @@
 
 ## 安装
 
-1. 从 [Releases](https://github.com/RaimuLimE/cutcut/releases/latest) 下载 `CutCut-Setup-1.4.0.exe`
+1. 从 [Releases](https://github.com/RaimuLimE/cutcut/releases/latest) 下载 `CutCut-Setup-1.4.1.exe`
 2. 运行。向导会依次问：
    - **为哪位用户安装**（推荐「仅为我安装」，不需要管理员）
    - **选定安装位置** —— 想装到 D 盘就点「浏览(B)...」换路径
-   - **选择功能** —— 两个可选项，默认都勾，不勾也能正常用：
+   - **选择功能** —— 三个可选项，默认都勾，不勾也能正常用：
      - 图片文件右键菜单
      - 网页图片右键菜单
+     - **数据目录** —— 模型、设置、缓存都存这里。默认跟安装盘走
+       （装在 D 盘就是 `D:\CutCut-data`），点「更改…」可另选，**不占系统盘**
 3. 装完自动启动
 4. **第一次用要先下载模型**（489.8 MB，约 1–2 分钟）：
    窗口左栏会出现下载面板，点「下载」。下载完自动校验 SHA-256，之后永久离线。
@@ -69,7 +71,7 @@
 2. 点「**打开扩展页**」，浏览器会打开 `edge://extensions/`
 3. 打开右上角的「**开发者模式**」
 4. 点「**加载解压缩的扩展**」，选这个目录：
-   `%APPDATA%\cutcut\browser-ext`
+   `<数据目录>\browser-ext`（默认随安装盘，如 `D:\CutCut-data\browser-ext`）
    （应用里点「显示扩展目录」可以直达）
 
 之后在任意网页上右键图片 → 「**用 CutCut 抠出主体**」。
@@ -161,6 +163,11 @@ cutcut/
   这类模型的固有分辨率限制，不是实现问题。
 
 ## 更新日志
+
+### v1.4.1 (2026-10-22)
+- 新增：安装向导可选**数据目录**（模型 / 设置 / 缓存都放这里，不占系统盘）
+- 新增：老用户首次启动时自动把旧数据复制到新数据目录（只复制不移动，安全）
+- 修复：卸载时保留数据目录（模型不用重新下载），只清理扩展目录
 
 ### v1.4.0 (2026-10-21)
 - 新增：资源管理器图片右键菜单（`--cutout` 命令行入口 + 单实例转交）

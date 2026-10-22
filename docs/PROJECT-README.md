@@ -9,12 +9,14 @@
 
 ## 一、给最终用户：怎么用
 
-1. 双击 `CutCut-Setup-1.4.0.exe`（**123 MB** 左右，安装后占 400 MB）
+1. 双击 `CutCut-Setup-1.4.1.exe`（**123 MB** 左右，安装后占 400 MB）
 2. 安装向导会问「为哪位用户安装」和「**选定安装位置**」——
    想装到 D 盘就点「浏览(B)...」换路径，默认在 `%LOCALAPPDATA%\Programs\CutCut`
-3. 接下来是「**选择功能**」页，两个可选项（默认都勾，不勾也能正常用）：
+3. 接下来是「**选择功能**」页，三个可选项（默认都勾，不勾也能正常用）：
    - **图片文件右键菜单** —— 资源管理器里右键任意图片 → 「用 CutCut 抠出主体」，直接开抠
    - **网页图片右键菜单** —— 浏览器里右键网页上的图片 → 「用 CutCut 抠出主体」
+   - **数据目录** —— 模型、设置、缓存全存这里。默认跟着安装盘走
+     （装在 D 盘就是 `D:\CutCut-data`），点「更改…」可以另选，**完全不占系统盘**
 4. 装完自动启动，桌面和开始菜单会有「CutCut」快捷方式
 5. **第一次用，先下载模型**：窗口左栏会出现下载面板，点「下载（489.8 MB）」
    （实测 5–7 MB/s，约 75–90 秒；下完自动校验 SHA-256，之后永久离线）
@@ -40,7 +42,7 @@
 
 **网页图片右键菜单怎么启用**（只需一次）：应用左栏「系统集成」勾上「网页图片右键抠图」
 → 点下面的「打开扩展页」→ 在浏览器里打开「开发者模式」→ 点「加载解压缩的扩展」
-→ 选 `%APPDATA%\cutcut\browser-ext` 这个目录。
+→ 选 `<数据目录>\browser-ext`（默认 `D:\CutCut-data\browser-ext`） 这个目录。
 
 > 为什么不能一键装好？新版 Edge/Chrome 会直接屏蔽注册表外置的第三方 CRX
 > （打开扩展页地址报 `ERR_BLOCKED_BY_CLIENT`），只剩「开发者模式 + 加载解压缩的扩展」
@@ -50,9 +52,9 @@
 ### 模型为什么不随包分发
 
 1.2.x 把两个模型（1.4 GB）直接打进安装包，安装包 1.25 GB。
-1.3.0 起改成**模型外置、首次运行下载**，安装包降到 **123 MB**（1.4.0 保持此体积）：
+1.3.0 起改成**模型外置、首次运行下载**，安装包降到 **123 MB**（1.4.x 保持此体积）：
 
-| | 1.2.1 | 1.3.0 / 1.4.0 |
+| | 1.2.1 | 1.3.0 / 1.4.x |
 |---|---|---|
 | 安装包 | 1283 MB | **123 MB** |
 | 安装后占用 | 1866 MB | 400 MB + 模型 |
@@ -152,37 +154,35 @@
 ## 三、开发者：目录结构与构建
 
 ```
-rmbg-cutout/
-├─ app/
-│  ├─ src/
-│  │  ├─ main.js          主进程：窗口、IPC、设置、文件对话框、自检、单实例/--cutout
-│  │  ├─ preload.js       contextBridge 暴露 window.api
-│  │  ├─ models.js        模型分发层：清单 / 下载 / 续传 / SHA-256 校验 / 导入
-│  │  ├─ segment.js       ONNX 推理核心 + 模型注册表
-│  │  ├─ refine.js        蒙版后处理（去白边 / 去杂点）
-│  │  ├─ bridge.js        本地 HTTP 桥（127.0.0.1:8770–8779），收浏览器扩展发来的图
-│  │  └─ integrations.js  HKCU 右键菜单注册 + 扩展目录安装/检测
-│  ├─ browser-ext/        浏览器扩展源码（MV3，contextMenus）
-│  ├─ renderer/index.html 单文件 UI（无框架，双主题 + 模型下载面板 + 系统集成）
-│  ├─ build/              icon.png / icon.ico / installer.nsh / 扩展密钥与 crx
-│  ├─ scripts/            图标生成、crx 打包、模型对比、冒烟测试、CDP 验收
-│  └─ package.json        electron-builder 配置
-├─ models/                model_fp16.onnx / birefnet_fp32.onnx（不进 git，也不进包）
-├─ verify/                验证产物（截图、抠图结果、模型对比）
-└─ PROJECT-REPORT.md      项目报告
+cutcut/
+├─ src/
+│  ├─ main.js          主进程：窗口、IPC、设置、文件对话框、自检、单实例/--cutout、数据目录
+│  ├─ preload.js       contextBridge 暴露 window.api
+│  ├─ models.js        模型分发层：清单 / 下载 / 续传 / SHA-256 校验 / 导入
+│  ├─ segment.js       ONNX 推理核心 + 模型注册表
+│  ├─ refine.js        蒙版后处理（去白边 / 去杂点）
+│  ├─ bridge.js        本地 HTTP 桥（127.0.0.1:8770–8779），收浏览器扩展发来的图
+│  └─ integrations.js  HKCU 右键菜单注册 + 扩展目录安装/检测
+├─ browser-ext/        浏览器扩展源码（MV3，contextMenus）
+├─ renderer/index.html 单文件 UI（无框架，双主题 + 模型下载面板 + 系统集成）
+├─ build/              icon-source.svg / icon.png / icon.ico / installer.nsh
+├─ scripts/            图标生成、crx 打包、模型对比、冒烟测试、CDP 验收
+├─ docs/               详细文档、截图、项目报告
+└─ package.json        electron-builder 配置
 ```
 
 ### 构建
 
 ```bat
-cd app
-build.cmd
+cd <仓库根>
+npm install
+npm run icons
+npx electron-builder --win nsis --x64
 ```
 
-或手动：
+或逐步：
 
 ```bat
-cd app
 npm install
 node node_modules\electron\install.js          :: npm 默认拦截 install script
 node scripts\make-icon.cjs                     :: SVG → 各尺寸 icon.ico
@@ -192,16 +192,17 @@ node scripts\check-catalog.cjs                 :: 校验清单里的体积/SHA-2
 node node_modules\electron-builder\cli.js --win nsis --x64
 ```
 
-产物：`app\dist\CutCut-Setup-1.4.0.exe`（约 123 MB）
+产物：`dist\CutCut-Setup-1.4.1.exe`（约 123 MB）
 
-> `build/` 里的 **`ext-key.pem` 是扩展私钥，别删**。删了 `make-crx.cjs` 会重新生成一对，
-> 扩展 ID 随之改变（`build/ext-key.txt` 第 2 行），而安装器 `installer.nsh` 是运行时
-> 从 `resources\browser-ext\ext-key.txt` 读 ID 的，所以不会坏——但已经装过旧扩展的用户
-> 需要重新加载一次。`scripts/_crxparse.cjs <crx>` 可回读校验 CRX3 结构与签名。
+> `build/ext-key.pem` 是扩展私钥，**不随仓库分发**（已在 `.gitignore` 里）。
+> 没有它 `make-crx.cjs` 会重新生成一对，扩展 ID 随之改变。这对普通构建没有影响——
+> 扩展是「加载解压缩的扩展」方式安装的，ID 变了重新加载一次即可。
+> `scripts/_crxparse.cjs <crx>` 可回读校验 CRX3 结构与签名。
 
 > **`check-catalog.cjs` 不能省**。它比对 `models.js` 里写死的 bytes/sha256 与
 > `../models/` 实际文件是否一致。清单写错时本地开发完全正常（模型在本地），
 > 但**所有用户下载完都会校验失败**——这是唯一能在打包前拦住它的检查。
+> 没有 `models/` 时它会跳过并成功退出，不影响没下模型的人打包。
 
 
 > `build.cmd` 必须是 **CRLF** 换行。若被编辑成 LF，`cmd /c build.cmd` 会报一串
@@ -229,16 +230,22 @@ node node_modules\electron-builder\cli.js --win nsis --x64
 `oneClick: false` + `allowToChangeInstallationDirectory: true` 才会出现「选定安装位置」页，
 也就是用 NSIS 内置的 `MUI_PAGE_DIRECTORY`。少任何一个都会变成一键装到默认路径。
 
-### 安装器的「选择功能」页（1.4.0）
+### 安装器的「选择功能」页（1.4.0 起，1.4.1 加了数据目录）
 
 可选页不是 electron-builder 的原生选项，是自己写的 `app/build/installer.nsh`：
 
 - `!macro customPageAfterChangeDir` → 在「选定安装位置」之后、开始安装之前插入一页
-  `Page custom ccOptionsPageCreate ccOptionsPageLeave`（`nsDialogs.nsh` 手绘两个 checkbox）
+  `Page custom ccOptionsPageCreate ccOptionsPageLeave`（`nsDialogs.nsh` 手绘两个 checkbox
+  + 一个可改的「数据目录」标签和一个「更改…」按钮）
 - `!macro customInstall` → 文件都解压完之后执行：勾了「图片右键菜单」就写 HKCU 的
   `Software\Classes\SystemFileAssociations\image\shell\CutCut`；勾了「网页图片右键」就把
-  `browser-ext\` 整个目录复制到 `$APPDATA\cutcut\browser-ext`
-- `!macro customUnInstall` → 删菜单键 + 删扩展目录
+  `browser-ext\` 整个目录铺到 `$CC_DataDir\browser-ext`；无论勾不勾都把
+  `$CC_DataDir` 写进 `$INSTDIR\data-dir.txt`，主进程启动时读它并 `app.setPath('userData', ...)`
+- `!macro customUnInstall` → 删菜单键 + 删 `<数据目录>\browser-ext`，
+  **数据目录本身保留**（模型 490 MB，删了要重下）
+
+数据目录默认值由 `Function ccComputeDataDir` 算：`StrCpy $0 "$INSTDIR" 2` 取盘符，
+再看第 3 个字符是不是 `:`，是就 `$0\CutCut-data`；拿不到盘符时回落到 `$APPDATA\cutcut`。
 
 三个必须记住的坑：
 
@@ -251,7 +258,47 @@ node node_modules\electron-builder\cli.js --win nsis --x64
 2. **复制扩展目录不能用 `CopyFiles`**——它不递归，`icons\` 子目录会漏，浏览器随后报「扩展已损坏」。
    要用 `SetOutPath` + `File /r` 在编译期把文件嵌进安装包。
 3. **静默安装 `/S` 不走可选页**，变量是空的，所以 `customInstall` 开头要判断
-   `${If} $CC_OptMenu == ""` → `StrCpy $CC_OptMenu ${BST_CHECKED}`（默认都装）。
+   `${If} $CC_OptMenu == ""` → `StrCpy $CC_OptMenu ${BST_CHECKED}`（默认都装）；
+   数据目录同理 `$CC_DataDir == ""` 时先 `Call ccComputeDataDir`。
+
+4. **卸载器里不能用 `${WordFind}`**。`WordFunc.nsh` 只定义 `!define WordFind`，没有
+   `un.WordFind`，会报 `Invalid command: "${WordFind}"`。剥 `FileRead` 回来的行尾改成手工
+   `StrCpy`（取最后一个字符判断 `$\r` / `$\n` 再 `StrCpy ... -1`）。
+
+5. **静默安装 `/D=` 必须显式带到目录名**。`/D=D:\` 会让 electron-builder 的
+   `${StrContains} $0 "${APP_FILENAME}" $INSTDIR` 判断失败，把 400 MB 全倒进 D 盘根目录；
+   正确写法是 `/D=D:\CutCut`（最终仍会多一层，装成 `D:\CutCut\`）。
+
+### 数据目录（1.4.1）
+
+安装器和主进程之间靠**一个文本文件**约定数据位置，不需要改注册表：
+
+```
+<安装目录>\data-dir.txt     ← 内容就是数据目录的绝对路径（如 D:\CutCut-data）
+```
+
+主进程在 `src/main.js` 顶部（`app.whenReady` 之前）就把它读出来：
+
+```js
+const dataChoice = resolveDataDir()          // CUTCUT_DATA 环境变量 > data-dir.txt > 默认
+const legacyUserData = app.getPath('userData')   // 先记住旧位置
+if (dataChoice.dir && path.resolve(dataChoice.dir) !== path.resolve(legacyUserData)) {
+  fs.mkdirSync(dataChoice.dir, { recursive: true })
+  app.setPath('userData', dataChoice.dir)    // 设置 + 模型 + Chromium 缓存全搬过去
+}
+```
+
+**顺序是关键**：这段必须早于任何 `app.getPath('userData')` 调用。那些调用都在函数体内
+（`modelCandidates` / `availableModels` / `settingsPath`），是延迟执行的，所以放在文件顶部即可。
+
+老用户升级时，`migrateLegacyData()` 会把旧目录的 `settings.json` 和 `models/` **复制**
+（不是移动）到新数据目录，然后写 `<新目录>\.migrated-from-legacy` 标记，第二次启动不再复制。
+用复制是为了就算中途断电也不会两头都缺文件。
+
+排查手段：
+- 界面「运行信息」里的 `userData`（`window.api.info()` 返回）就是实际数据目录
+- `CUTCUT_DATA=D:\some\dir` 可以临时覆盖，方便测试
+- 卸载**不会删数据目录**（模型 490 MB，删了用户要重下），只删 `<数据目录>\browser-ext`
 
 ### 换模型 / 加模型
 
@@ -275,11 +322,12 @@ myModel: {
 运行时也支持外挂：把 `.onnx` 放到
 
 ```
-%APPDATA%\cutcut\models\
+<数据目录>\models\
 ```
 
-（`userData` 的目录名取 `package.json` 的 `name`，是 **小写 `cutcut`**；
-但 README 早期版本写成 `CutCut`——以 `app:info` IPC 返回的 `userData` 为准。）
+（1.4.1 起数据目录由安装器写在 `<安装目录>\data-dir.txt`，默认 `<安装盘>:\CutCut-data`；
+开发态没这个文件时才回落到 `%APPDATA%\cutcut`，目录名取 `package.json` 的 `name`，是**小写**。
+以 `window.api.info()` 返回的 `userData` 为准。）
 这是模型的**首选**位置（先于安装目录），所以用户不用重装就能换模型，
 「从本地导入」按钮也是把文件复制到这里。
 
@@ -400,7 +448,7 @@ myModel: {
     （「此页面已被 Microsoft Edge 阻止」）。`HKCU\Software\Policies` 整体不可写
     （`Requested registry access is not allowed`），所以也没法用 `ExtensionInstallForcelist`。
     → 最终只走**「开发者模式 + 加载解压缩的扩展」**这条官方允许的路；安装器只负责把
-    扩展目录复制到 `%APPDATA%\cutcut\browser-ext`，UI 提供「打开扩展页 / 显示扩展目录」两个按钮。
+    扩展目录复制到 `<数据目录>\browser-ext`（默认 `D:\CutCut-data\browser-ext`），UI 提供「打开扩展页 / 显示扩展目录」两个按钮。
     （扩展本身没问题：`--load-extension=<dir>` 启动时 Service Worker 正常、
     `contextMenus` 可创建、能 POST 到本地桥。）
 
@@ -416,7 +464,7 @@ myModel: {
 
 ```bat
 :: 安装包内程序自检（不需要打开界面）
-"%LOCALAPPDATA%\Programs\CutCut\CutCut.exe" --selftest 图片.png 输出.png
+"D:\CutCut\CutCut.exe" --selftest 图片.png 输出.png
 ```
 
 可用环境变量 `CC_MODEL=rmbg|birefnet`、`CC_EP=auto|dml|cpu` 指定。
@@ -425,7 +473,7 @@ myModel: {
 
 ```
 SELFTEST OK
-model=rmbg path=C:\Users\...\AppData\Roaming\cutcut\models\model_fp16.onnx
+model=rmbg path=D:\CutCut-data\models\model_fp16.onnx
 electron=44.9.0 node=24.22.0 packaged=true
 provider=dml size=820x460 ms=6459
 stats={"meanAlpha":10.4,"transparentPct":94.1,"opaquePct":2.3}
@@ -487,7 +535,7 @@ Remove-Item 'HKCU:\Software\Classes\SystemFileAssociations\image\shell\CutCut' -
 CDP 用法的前提是带 `--remote-debugging-port=9222` 启动，例如：
 
 ```bat
-"%LOCALAPPDATA%\Programs\CutCut\CutCut.exe" --remote-debugging-port=9222
+"D:\CutCut\CutCut.exe" --remote-debugging-port=9222
 node scripts\cdp-probe.cjs 9222
 ```
 

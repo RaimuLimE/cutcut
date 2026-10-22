@@ -5,13 +5,14 @@
 | 项 | 值 |
 |---|---|
 | 项目名 | CutCut（前身 RMBG 一键抠图） |
-| 版本 | **v1.4.0** |
-| 交付物 | `app\dist\CutCut-Setup-1.4.0.exe` — **123.33 MB** |
-| 平台 | Windows x64（NSIS 安装包，支持自定义安装路径） |
-| 完成时间 | 2026-10-21 22:34 |
-| 代码量 | 主进程 581 行 / 渲染层 938 行 / 推理 262 行 / 模型分发 256 行 / 系统集成 178 行 / 本地桥 157 行 / 后处理 150 行 / preload 58 行，合计 **2580 行**（另有浏览器扩展 164 行 + 安装器脚本 120 行） |
+| 版本 | **v1.4.1** |
+| 交付物 | `dist\CutCut-Setup-1.4.1.exe` — **123.33 MB** |
+| 平台 | Windows x64（NSIS 安装包，支持自定义安装路径与数据目录） |
+| 完成时间 | 2026-10-22 18:25 |
+| 代码量 | 主进程 587 行 / 渲染层 866 行 / 推理 236 行 / 模型分发 232 行 / 系统集成 159 行 / 本地桥 140 行 / 后处理 137 行 / preload 52 行，合计 **2409 行**（另有浏览器扩展 146 行 + 安装器脚本 176 行） |
 | 技术栈 | Electron 44.9.0 · onnxruntime-node 1.23.2 · sharp 0.34.5 · electron-builder 26.15.3 |
-| 演进 | v1.0.0 单模型 ComfyUI 后端 → v1.1.0 双模型 + 改名 CutCut → v1.2.x 双主题 + 自定义安装路径 → v1.3.0 模型外置（1283→123 MB） → **v1.4.0 右键菜单 + 浏览器扩展** |
+| 仓库 | https://github.com/RaimuLimE/cutcut |
+| 演进 | v1.0.0 单模型 ComfyUI 后端 → v1.1.0 双模型 + 改名 CutCut → v1.2.x 双主题 + 自定义安装路径 → v1.3.0 模型外置（1283→123 MB） → v1.4.0 右键菜单 + 浏览器扩展 → **v1.4.1 数据目录可指定（不占系统盘）** |
 
 ---
 
@@ -153,7 +154,7 @@ v1.2.0 把整套配色变量化（35 个 CSS 变量），实现深色 / 浅色�
 
 ### 3.5 安装器
 
-`build.nsis` 关键配置（1.4.0 现用值）：
+`build.nsis` 关键配置（1.4.x 现用值）：
 
 ```json
 {
@@ -171,15 +172,31 @@ v1.2.0 把整套配色变量化（35 个 CSS 变量），实现深色 / 浅色�
 
 `oneClick:false` + `allowToChangeInstallationDirectory:true` 才会出现「选定安装位置」页。实测截图确认：目标文件夹输入框 + 「浏览(B)...」按钮 + 所需空间 / 可用空间均正常显示，全中文。
 
-**「选择功能」页**（1.4.0 新增）由自定义 include `app/build/installer.nsh` 提供，挂在 electron-builder 模板的两个宏上：
+**「选择功能」页**（1.4.0 起）由自定义 include `build/installer.nsh` 提供，挂在 electron-builder 模板的三个宏上：
 
 | 宏 | 模板位置 | 用途 |
 |---|---|---|
 | `customPageAfterChangeDir` | `assistedInstaller.nsh:42-44` | 在「选定安装位置」之后、`MUI_PAGE_INSTFILES` 之前插入一页 `Page custom` |
-| `customInstall` | `installSection.nsh:81-83` | 文件解压、注册表信息、快捷方式全做完之后，写 HKCU 菜单键、复制扩展目录 |
-| `customUnInstall` | `uninstaller.nsh:156-158` | 删菜单键、删扩展目录 |
+| `customInstall` | `installSection.nsh:81-83` | 文件解压、注册表信息、快捷方式全做完之后，写 HKCU 菜单键、铺扩展目录、写 `data-dir.txt` |
+| `customUnInstall` | `uninstaller.nsh:156-158` | 删菜单键、删 `<数据目录>\browser-ext`（**保留数据目录本体**） |
 
-页面本身用 `nsDialogs.nsh` 手绘（两个 checkbox + 一行说明），因为 electron-builder 的 `MUI_PAGE_COMPONENTS` 只在 `customUnInstallSection` 存在时用于卸载器，不能拿来当安装选项页。
+页面本身用 `nsDialogs.nsh` 手绘（1.4.1 是两个 checkbox + 一行数据目录标签 + 一个「更改…」按钮），因为 electron-builder 的 `MUI_PAGE_COMPONENTS` 只在 `customUnInstallSection` 存在时用于卸载器，不能拿来当安装选项页。
+
+### 3.5.1 数据目录（1.4.1）
+
+用户明确要求「安装桌面应用全部安到 D 盘」。1.4.0 之前 `userData` 固定是
+`%APPDATA%\cutcut`，光模型就 490 MB，全压在 C 盘。1.4.1 的做法：
+
+1. 安装器算默认数据目录 `<安装盘>:\CutCut-data`（`StrCpy $0 "$INSTDIR" 2` 取盘符），
+   在「选择功能」页显示并允许「更改…」（`nsDialogs::SelectFolderDialog`）
+2. `customInstall` 把它写进 `<安装目录>\data-dir.txt`
+3. 主进程在 `app.whenReady()` 之前读这个文件，`app.setPath('userData', dir)`
+   ——设置、模型、Chromium 缓存、扩展目录**全部**跟着走
+4. 老用户升级时 `migrateLegacyData()` 把旧的 `settings.json` 与 `models/` **复制**
+   到新目录（不是移动，防止中途断电两头都缺），写 `.migrated-from-legacy` 标记防重复
+
+实测：`D:\CutCut\`（程序 400 MB）+ `D:\CutCut-data\`（数据 499 MB），C 盘旧
+`%APPDATA%\cutcut` 500.5 MB 已清空，重启应用后不会重建（只剩一个 0 字节空壳目录）。
 
 ### 3.6 体积：1283 MB → 123 MB
 
@@ -232,7 +249,7 @@ NSIS 实际压缩比 30.8%（400 MB → 123 MB），`compression:"maximum"` 已�
    此时发 `app:openFiles` 会静默丢失。改成 `preload.js` 暴露 `ready()`，渲染进程挂完监听后
    `ipcMain.on('app:ready')` → `flushPending()`；`did-finish-load` 只留 3 秒兜底。
 3. **扩展不做「一键安装」**：见 4.5 节的实测结论——新版 Edge/Chrome 直接屏蔽注册表外置的第三方 CRX。
-   安装器只负责把扩展目录复制到 `%APPDATA%\cutcut\browser-ext`，UI 提供「打开扩展页 / 显示扩展目录」，
+   安装器只负责把扩展目录复制到 `<数据目录>\browser-ext`，UI 提供「打开扩展页 / 显示扩展目录」，
    用户点一次「加载解压缩的扩展」。这是浏览器官方允许、且不需管理员权限的唯一路径。
 
 ---
@@ -355,8 +372,31 @@ NSIS 实际压缩比 30.8%（400 MB → 123 MB），`compression:"maximum"` 已�
     `SetOutPath` + `File /r "${PROJECT_DIR}\browser-ext\*.*"`。
 
 21. **静默安装 `/S` 不走自定义页**
-    `$CC_OptMenu` / `$CC_OptExt` 是空串，`customInstall` 里要
-    `${If} $CC_OptMenu == ""` → `StrCpy $CC_OptMenu ${BST_CHECKED}`（两项都按「默认勾选」处理）。
+    `$CC_OptMenu` / `$CC_OptExt` / `$CC_DataDir` 都是空串，`customInstall` 里要
+    `${If} $CC_OptMenu == ""` → `StrCpy $CC_OptMenu ${BST_CHECKED}`（两项都按「默认勾选」处理），
+    `$CC_DataDir == ""` → `Call ccComputeDataDir`。
+
+22. **卸载器里没有 `${WordFind}`**
+    `WordFunc.nsh` 只定义 `!define WordFind`（安装器侧），卸载器会报
+    `Invalid command: "${WordFind}"`，整个 `!include` 失败、打包中断。
+    剥 `FileRead` 回来的行尾只能手工 `StrCpy`（取最后 1 字符判断 `$\r`/`$\n` 再 `StrCpy ... -1`）。
+
+23. **静默安装 `/D=` 的路径陷阱**
+    `/D=D:\` 会让 400 MB 全倒进 D 盘根目录（`D:\CutCut.exe`、`D:\locales`……），
+    因为 electron-builder 用 `${StrContains} $0 "${APP_FILENAME}" $INSTDIR` 决定是否追加应用名，
+    路径里不含 `CutCut` 时判断走错。**`/D=` 后面必须写带应用名的完整目录**（如 `/D=D:\CutCut`）。
+    清理时注意安装器残留：Uninstall 注册项、`HKCU\Software\<APP_GUID>`、右键菜单键都要一起 `reg delete`。
+
+24. **数据目录必须在 `app.getPath('userData')` 之前设置**
+    `app.setPath('userData', dir)` 只能在启动早期调用一次。写晚了，Chromium 已经按旧路径
+    建好 profile 和缓存，改路径会导致「设置每次重置」。当前实现放在 `src/main.js` 顶部
+    （`app.whenReady()` 之前），读安装器写的 `<安装目录>\data-dir.txt`，优先级低于
+    `CUTCUT_DATA` 环境变量（方便测试）。
+
+25. **老数据迁移用复制不用移动**
+    `migrateLegacyData()` 对 `settings.json` 与 `models/` 做 `fsp.cp`，成功后写
+    `.migrated-from-legacy` 标记。若移动（rename）在中途断电，旧目录已部分清空、
+    新目录又不完整，用户会同时丢设置和 490 MB 模型；复制最多多占一份临时空间。
 
 ---
 
@@ -368,7 +408,7 @@ v1.4.0 静默安装后的自检（模型在 userData，不在包内）：
 
 ```
 SELFTEST OK
-model=rmbg path=C:\Users\xiure\AppData\Roaming\cutcut\models\model_fp16.onnx
+model=rmbg path=D:\CutCut-data\models\model_fp16.onnx
 electron=44.9.0 node=24.22.0 packaged=true
 provider=dml size=1052x1403 ms=9529
 stats={"meanAlpha":147.2,"transparentPct":42.1,"opaquePct":57.6}
@@ -404,17 +444,18 @@ CDP 模拟点击：
 切回 RMBG: 复原
 ```
 
-### 5.4 安装器（v1.4.0）
+### 5.4 安装器（v1.4.0 起，v1.4.1 加了数据目录）
 
-交互式安装实测（截图保存在 `verify/inst/ep-*.png`）：
+交互式安装实测（截图保存在 `docs/screenshots/`）：
 
 1. 「安装选项 / 为哪一位用户安装」中文正常，两项单选
 2. 「**选定安装位置**」——目标文件夹输入框 + 「浏览(B)...」，所需空间 1.8 GB / 可用空间 31.2 GB
-3. 「**选择功能**」——两个 checkbox（图片文件右键菜单 / 网页图片右键抠图）默认全勾，附一行说明
-4. 装完后 `VersionInfo` 为 `ProductName=CutCut / FileVersion=1.4.0`
+3. 「**选择功能**」——两个 checkbox（图片文件右键菜单 / 网页图片右键抠图）默认全勾；
+   下面一行「数据目录」标签显示默认值 + 「更改…」按钮（v1.4.1）
+4. 装完后 `VersionInfo` 为 `ProductName=CutCut / FileVersion=1.4.1`
 
-静默安装 `/S /D=<dir>` 也验证过（退出码 0，6.5 秒装完 400 MB），此时两个选项按默认全装：
-注册表菜单键 4 条齐全，`%APPDATA%\cutcut\browser-ext` 6 个文件齐全。
+静默安装 `/S /D=<dir>` 也验证过（退出码 0，约 9 秒装完 400 MB），此时选项按默认全装：
+注册表菜单键 4 条齐全，`<数据目录>\browser-ext` 6 个文件齐全，`<安装目录>\data-dir.txt` 内容正确。
 
 > 注意：electron-builder 会把 `${APP_FILENAME}` 自动拼到 `/D=` 指定的目录后面
 > （`assistedInstaller.nsh:34-36`），所以 `/D=D:\x\target` 实际装到 `D:\x\target\CutCut\`。
@@ -474,6 +515,37 @@ spawn CutCut.exe --cutout desktop-photo-1.png
 | `OPTIONS` | 204 + `Access-Control-Allow-Origin` 回原 origin | ✓ |
 | 合法 PNG/WebP | 200 `{ok:true,path,bytes}` 且 `onImage` 触发 | ✓ |
 
+### 5.8 全部装到 D 盘（v1.4.1 实测）
+
+用户要求「安装桌面应用全部安到 D 盘」。静默安装 + CDP 验收：
+
+```powershell
+CutCut-Setup-1.4.1.exe /S /D=D:\CutCut     # 注意必须显式带目录名
+```
+
+结果：
+
+| 检查项 | 实测 |
+|---|---|
+| 程序目录 | `D:\CutCut\`（400 MB，`CutCut.exe` FileVersion 1.4.1） |
+| `data-dir.txt` | `D:\CutCut-data`（无多余行尾） |
+| 数据目录 | `D:\CutCut-data\`（499.3 MB：model_fp16.onnx 513576499 B + settings.json + 各家缓存 + browser-ext） |
+| `window.api.info().userData` | `D:\CutCut-data` |
+| `--selftest` | `SELFTEST OK / path=D:\CutCut-data\models\model_fp16.onnx / provider=dml / ms=9189` |
+| 旧数据迁移日志 | 首次运行打 `[migrate] 已从旧目录复制：settings.json、models` |
+| 二次启动 | 不重复复制（`.migrated-from-legacy` 生效） |
+| C 盘旧目录 | 500.5 MB 删除后重启应用**不重建内容**（只剩 0 字节空壳目录，是 Electron/Chromium 写 `Local State` 的副作用，无实际占用） |
+| 卸载 | 菜单键删、`D:\CutCut-data\browser-ext` 删、**模型和 settings.json 保留** |
+| 快捷方式 | 桌面 + 开始菜单均指向 `D:\CutCut\CutCut.exe` |
+| CDP UI | `version 1.4.1`、badges 正常、`overflow: []`、`menuInstalled/ extInstalled: true`、`extDir: D:\CutCut-data\browser-ext` |
+
+**踩到的坑**：`/D=D:\` 会把 400 MB 全倒进 D 盘根目录（`D:\CutCut.exe`、`D:\locales`、
+`D:\resources`、一堆 `.dll`/`.pak`），因为 electron-builder 用
+`${StrContains} $0 "${APP_FILENAME}" $INSTDIR` 判断是否要追加应用名子目录。
+`/D=D:\` 里不含 `CutCut`、判断走错分支，结果直接铺在根目录。正确写法是 `/D=D:\CutCut`
+（路径里已含应用名，不再追加 → 装成 `D:\CutCut\CutCut.exe`）；
+写成 `/D=D:\cc141\inst` 这种不含应用名的路径则会被追加一层 → `D:\cc141\inst\CutCut\`。
+
 ---
 
 ## 六、清理
@@ -517,11 +589,11 @@ spawn CutCut.exe --cutout desktop-photo-1.png
 | `HKCU\Software\Microsoft\Edge\Extensions` | 只剩 `fldmhceldgbpfpkbgopacenieobmligc`（Kimi 原项，path/version 未变）；我写入的 3 条测试键全部删除 |
 | 策略键 | `HKCU\Software\Policies\Microsoft\Edge` 不存在；`ExtensionInstallForcelist` / `ExtensionSettings` 均不存在 |
 | 我的测试 Edge 进程 | 按命令行匹配 `cc-ext|cc-edge|cc14|ccv14` → 0 个 |
-| `%APPDATA%\cutcut\browser-ext` | 不存在（测试残留已清） |
+| `<数据目录>\browser-ext` | 不存在（测试残留已清） |
 
 **保留**：`app/node_modules`（717 MB，重建必需）、`app/build/ext-key.pem`（扩展签名私钥，丢了扩展 ID 会变）、`verify/` 下的截图证据。
 `models/` 原先是个指向已卸载旧版的悬空 Junction（目标不存在），已删除并重建为空目录——
-1.4.0 打包不需要模型文件，用户首次运行时由 `models.js` 下载到 `%APPDATA%\cutcut\models\`。
+打包不需要模型文件，用户首次运行时由 `models.js` 下载到 `<数据目录>\models\`（1.4.1 默认 `D:\CutCut-data\models\`）。
 
 ### 6.3 第三轮（最后一次验证之后）
 
@@ -546,31 +618,39 @@ spawn CutCut.exe --cutout desktop-photo-1.png
 ## 七、产物清单
 
 ```
-rmbg-cutout/
-├─ app/
-│  ├─ dist/CutCut-Setup-1.4.0.exe          123.33 MB   ← 交付物
-│  ├─ dist/CutCut-Setup-1.4.0.exe.blockmap   0.13 MB   ← 差分更新用
-│  ├─ src/main.js           581 行  主进程：窗口、IPC、设置、自检、单实例/--cutout、剪贴板
-│  ├─ src/preload.js         58 行  contextBridge
-│  ├─ src/segment.js        262 行  ONNX 推理核心 + 模型注册表
-│  ├─ src/models.js         256 行  模型分发：清单 / 下载 / 续传 / 校验 / 导入
-│  ├─ src/integrations.js   178 行  HKCU 右键菜单 + 扩展目录安装
-│  ├─ src/bridge.js         157 行  本地 HTTP 桥（127.0.0.1:8770–8779）
-│  ├─ src/refine.js         150 行  蒙版后处理
-│  ├─ renderer/index.html   938 行  单文件双主题 UI
-│  ├─ browser-ext/            6 个文件  浏览器扩展（MV3，background.js 164 行）
-│  ├─ build/icon.ico       36.7 KB  7 帧（16/24/32/48/64/128/256）
-│  ├─ build/icon.png       34.1 KB  512×512
-│  ├─ build/installer.nsh   5.2 KB  「选择功能」页 + 注册表写入（120 行）
-│  ├─ build/ext-key.pem     1.7 KB  扩展私钥（**别删**）
-│  ├─ build/browser-ext.crx 27.8 KB  签好名的扩展包
-│  ├─ build/browser-ext.zip 27.2 KB  同内容的 zip
-│  └─ scripts/              42 个验证与构建脚本
-├─ models/                 空目录（1.4.0 打包不需要模型；开发期冒烟可把 onnx 放这里或设 CC_MODEL_DIR）
-├─ verify/                 截图与对比图
+cutcut/                     ← GitHub 仓库根
+├─ src/
+│  ├─ main.js           587 行  主进程：窗口、IPC、设置、自检、单实例/--cutout、数据目录、剪贴板
+│  ├─ preload.js         52 行  contextBridge
+│  ├─ segment.js        236 行  ONNX 推理核心 + 模型注册表
+│  ├─ models.js         232 行  模型分发：清单 / 下载 / 续传 / 校验 / 导入
+│  ├─ integrations.js   159 行  HKCU 右键菜单 + 扩展目录部署
+│  ├─ bridge.js         140 行  本地 HTTP 桥（127.0.0.1:8770–8779）
+│  └─ refine.js         137 行  蒙版后处理
+├─ renderer/index.html  866 行  单文件双主题 UI
+├─ browser-ext/            6 个文件  浏览器扩展（MV3，background.js 146 行）
+├─ build/
+│  ├─ icon-source.svg            图标 SVG 源
+│  ├─ icon.ico       36.7 KB  7 帧（16/24/32/48/64/128/256）
+│  ├─ icon.png       34.1 KB  512×512
+│  └─ installer.nsh   8.0 KB  「选择功能」页 + 数据目录 + 注册表写入（176 行）
+├─ scripts/                28 个验证与构建脚本
+├─ docs/
+│  ├─ PROJECT-README.md          详细技术文档
+│  ├─ PROJECT-REPORT.md          ← 本文件
+│  ├─ screenshots/               界面与安装器截图
+│  └─ verify/themes/             双主题截图
 ├─ README.md
-└─ PROJECT-REPORT.md       ← 本文件
+└─ LICENSE                       MIT（代码部分）
+
+另外，发布用的 123.33 MB 安装包作为 Release 资产托管在
+https://github.com/RaimuLimE/cutcut/releases/tag/v1.4.1
+（不进 git 历史——GitHub 对单文件 100 MB 上限，且每次构建都会变）
 ```
+
+原开发工作区 `D:\DeepSeekHarness\userspace\rmbg-cutout\app\` 里另有：
+`dist\CutCut-Setup-1.4.1.exe`（123.33 MB 交付物）、`node_modules`（717 MB，重建必需）、
+`build\ext-key.pem`（扩展签名私钥）、`models\`（空目录，打包不需要模型）。
 
 ---
 

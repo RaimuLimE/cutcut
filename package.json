@@ -1,6 +1,6 @@
 {
   "name": "cutcut",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "CutCut - 本地离线一键抠图（RMBG-2.0 / BiRefNet 双模型，模型首次运行按需下载）",
   "main": "src/main.js",
   "author": "DeepSeek Harness",
@@ -16,9 +16,9 @@
   },
   "scripts": {
     "start": "electron .",
-    "icons": "node scripts/make-icon.cjs && node scripts/make-ext-icons.cjs && node scripts/make-crx.cjs",
-    "verify": "node scripts/verify-models.cjs",
-    "dist": "electron-builder --win nsis --x64"
+    "smoke": "electron scripts/smoke.js",
+    "dist": "electron-builder --win nsis --x64",
+    "pack": "node scripts/pack-small.cjs"
   },
   "build": {
     "appId": "com.deepseekharness.cutcut",

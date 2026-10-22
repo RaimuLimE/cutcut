@@ -18,12 +18,75 @@ const pendingPaths = []
 let bridgeHandle = null
 let rendererReady = false
 
+// ---------- 数据目录（1.4.1）----------
+//
+// 1.4.0 及以前，userData（设置 / 480 MB 模型 / 缓存 / 扩展目录）固定落在
+// C:\Users\<用户>\AppData\Roaming\cutcut —— 程序装在 D 盘、数据却占 C 盘，很别扭。
+//
+// 现在改成「数据跟着安装位置走」：安装器在安装目录写一个 data-dir.txt，
+// 里面是用户选的数据目录（默认 <安装盘>:\CutCut-data），主进程在 app ready 之前
+// 把它设成 userData。必须在任何 app.getPath('userData') 调用之前执行。
+//
+// 优先级：CUTCUT_DATA 环境变量 > 安装目录 data-dir.txt > Electron 默认值。
+const DATA_DIR_FILE = 'data-dir.txt'
+
+function resolveDataDir () {
+  const env = process.env.CUTCUT_DATA
+  if (env && path.isAbsolute(env)) return { dir: env, source: 'env' }
+  if (app.isPackaged) {
+    const file = path.join(path.dirname(process.execPath), DATA_DIR_FILE)
+    try {
+      const first = fs.readFileSync(file, 'utf8').split(/\r?\n/).map((s) => s.trim()).find(Boolean)
+      if (first && path.isAbsolute(first)) return { dir: first, source: 'installer' }
+    } catch {}
+  }
+  return { dir: null, source: 'default' }
+}
+
+const dataChoice = resolveDataDir()
+/** 改路径之前的旧 userData，升级时从这里把模型和设置搬过来 */
+const legacyUserData = app.getPath('userData')
+if (dataChoice.dir && path.resolve(dataChoice.dir) !== path.resolve(legacyUserData)) {
+  try {
+    fs.mkdirSync(dataChoice.dir, { recursive: true })
+    app.setPath('userData', dataChoice.dir)
+  } catch (e) {
+    console.warn('数据目录不可用，回退到默认位置：' + e.message)
+  }
+}
+
+/**
+ * 1.4.0 → 1.4.1 升级：旧位置里的模型和设置复制到新数据目录。
+ * 用复制而不是移动，旧文件留着由用户/脚本自行清理，避免搬一半丢数据。
+ * 写一个标记文件保证只搬一次。
+ */
+async function migrateLegacyData () {
+  const cur = app.getPath('userData')
+  if (path.resolve(cur) === path.resolve(legacyUserData)) return
+  const marker = path.join(cur, '.migrated-from-legacy')
+  if (fs.existsSync(marker)) return
+  const moved = []
+  for (const name of ['settings.json', 'models']) {
+    const src = path.join(legacyUserData, name)
+    const dst = path.join(cur, name)
+    if (!fs.existsSync(src) || fs.existsSync(dst)) continue
+    try {
+      await fsp.cp(src, dst, { recursive: true })
+      moved.push(name)
+    } catch (e) {
+      console.warn('迁移 ' + name + ' 失败：' + e.message)
+    }
+  }
+  try { fs.writeFileSync(marker, new Date().toISOString()) } catch {}
+  if (moved.length) console.log('[migrate] 已从旧目录复制：' + moved.join('、'))
+}
+
 /**
  * 从命令行里挑出 --cutout 后面的文件路径（资源管理器右键 / 命令行都走这里）。
  *
  * 麻烦在于开发态（未打包）Electron 会把自己的开关和 app 路径插进 argv，
  * 实测 second-instance 拿到的是：
- *   [exe, --cutout, --allow-file-access-from-files, <app 目录>, <图片路径>]
+ *   [exe, --cutout, --allow-file-access-from-files, D:\cc14\app, <图片路径>]
  * 所以不能「取 --cutout 后的第一个参数」。这里改成：把 --cutout 之后所有
  * 非开关参数都收下，再只保留「真实存在、且有图片扩展名」的那些——
  * app 目录之类自然被过滤掉。同时兼容 --cutout=<路径>，并去掉引号。
@@ -194,6 +257,10 @@ function createWindow () {
 }
 
 app.whenReady().then(async () => {
+  // 1.4.0 → 1.4.1：把旧 userData 里的模型/设置搬到新数据目录（只搬一次，见标记文件）。
+  // 放在最前面，这样接下来的 --selftest 也能用上刚搬过来的模型。
+  await migrateLegacyData()
+
   // 打包后自检：CutCut.exe --selftest <输入图> [输出图]
   // 用于验证安装包在目标机器上模型与原生依赖都能加载
   const argv = process.argv.slice(1)
