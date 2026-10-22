@@ -74,7 +74,8 @@ Var CC_DataDir
   FunctionEnd
 
   Function ccOptionsPageCreate
-    !insertmacro MUI_HEADER_TEXT "选择功能" "选择要一起安装的快捷功能，装好后也能在应用里随时改。"
+    ; 说明文字放页头副标题，省出正文纵向空间（1018 模板的正文只有 ~96u 高）
+    !insertmacro MUI_HEADER_TEXT "选择功能" "只写当前用户，不需要管理员权限；下面两项不勾也能正常使用。"
 
     nsDialogs::Create 1018
     Pop $0
@@ -85,34 +86,33 @@ Var CC_DataDir
     ; 数据目录默认跟着安装盘；每次重建页面都重置，避免残留旧值
     Call ccComputeDataDir
 
-    ${NSD_CreateLabel} 0 0 100% 10u "只写当前用户，不需要管理员权限；下面两项不勾也能正常使用 CutCut。"
-    Pop $0
-
-    ${NSD_CreateCheckbox} 0 14u 100% 12u "图片文件右键菜单"
+    ${NSD_CreateCheckbox} 0 4u 100% 12u "图片文件右键菜单"
     Pop $CC_ChkMenu
     ${NSD_SetState} $CC_ChkMenu ${BST_CHECKED}
 
-    ${NSD_CreateLabel} 10u 25u 92% 10u "资源管理器里右键任意图片 →「用 CutCut 抠出主体」。"
+    ${NSD_CreateLabel} 10u 15u 90% 10u "资源管理器里右键任意图片 →「用 CutCut 抠出主体」。"
     Pop $0
 
-    ${NSD_CreateCheckbox} 0 39u 100% 12u "网页图片右键菜单"
+    ${NSD_CreateCheckbox} 0 30u 100% 12u "网页图片右键菜单"
     Pop $CC_ChkExt
     ${NSD_SetState} $CC_ChkExt ${BST_CHECKED}
 
-    ${NSD_CreateLabel} 10u 50u 92% 22u "会把浏览器扩展放到数据目录的 browser-ext。装完后在应用的「系统集成」点「打开扩展页」，\
-开启开发者模式，再点「加载解压缩的扩展」选那个目录。不想装也没关系：复制图片后按 Ctrl+Alt+X 一样能抠。"
+    ${NSD_CreateLabel} 10u 41u 90% 10u "扩展会放进数据目录的 browser-ext，装完后在应用里加载一次即可。"
     Pop $0
 
-    ${NSD_CreateHLine} 0 76u 100% 1u ""
+    ${NSD_CreateLabel} 10u 52u 90% 10u "不想装也没关系：复制图片后按 Ctrl+Alt+X 一样能抠。"
     Pop $0
 
-    ${NSD_CreateLabel} 0 82u 100% 10u "数据目录（模型、设置和缓存都存在这里，不占系统盘）"
+    ${NSD_CreateHLine} 0 66u 100% 1u ""
     Pop $0
 
-    ${NSD_CreateLabel} 0 94u 73% 12u "$CC_DataDir"
+    ${NSD_CreateLabel} 0 72u 100% 10u "数据目录（模型、设置、缓存都放这里，不占系统盘）"
+    Pop $0
+
+    ${NSD_CreateLabel} 0 83u 69% 11u "$CC_DataDir"
     Pop $CC_DataLabel
 
-    ${NSD_CreateButton} 75% 93u 25% 13u "更改…"
+    ${NSD_CreateButton} 71% 81u 29% 14u "更改…"
     Pop $CC_BtnData
     ${NSD_OnClick} $CC_BtnData ccPickDataDir
 
