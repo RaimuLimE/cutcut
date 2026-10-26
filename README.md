@@ -1,10 +1,6 @@
 # CutCut · 一键抠图
 
-> 本地离线 AI 抠图桌面应用。双击即用，不联网、不上传、不要 Python、不要 ComfyUI。
-
-<p align="center">
-  <img src="docs/screenshots/app-dark.png" width="820" alt="CutCut 深色主题">
-</p>
+> 本地离线 AI 抠图桌面应用。双击即用，不联网、不上传、不要 Python。
 
 **下载安装包**：[**CutCut-Setup-1.4.1.exe**](https://github.com/RaimuLimE/cutcut/releases/latest) · 123 MB · Windows 10/11 x64
 
