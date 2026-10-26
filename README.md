@@ -17,8 +17,11 @@
 推理全部在本机完成。图片不会离开你的电脑，断网也能用。
 
 <p align="center">
-  <img src="docs/screenshots/sample-cutout.png" width="300" alt="抠图结果示例">
+  <img src="docs/screenshots/sample-anime.png" width="300" alt="二次元立绘抠图示例">
+  <img src="docs/screenshots/sample-photo.png" width="300" alt="实拍照片抠图示例">
 </p>
+
+<p align="center"><sub>左：二次元立绘（森林背景） · 右：实拍照片（漫展现场）。都是 CutCut 用 RMBG-2.0 直接跑出来的结果，棋盘格表示透明区域。</sub></p>
 
 ## 功能
 
