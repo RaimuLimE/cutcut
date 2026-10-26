@@ -58,12 +58,35 @@ async function gh (method, url, body) {
   if (localSha === remoteSha) { console.log('已一致，无需推送'); return }
 
   // 改动清单（相对远端 tip）
-  const out = git(`git diff --name-status ${remoteSha} ${HEAD}`).toString().trim()
-  if (!out) { console.log('无差异'); return }
+  // 远端 tip 是 API 重建的 commit，本地通常没有这个对象，所以先试着 git diff，
+  // 失败就用「远端 tree 递归清单 vs 本地 git hash-object」按 blob sha 比对。
+  let changes = null
+  try {
+    const out = git(`git diff --name-status ${remoteSha} ${HEAD}`).toString().trim()
+    changes = out.split(/\r?\n/).filter(Boolean).map((line) => {
+      const [status, ...rest] = line.split('\t')
+      return { status, path: rest.join('\t') }
+    })
+  } catch {
+    console.log('本地没有远端 commit，改用 tree 快照比对')
+    const remoteTree = await gh('GET', `/repos/${REPO}/git/trees/${baseTree}?recursive=1`)
+    const remote = new Map()
+    for (const t of remoteTree.tree) if (t.type === 'blob') remote.set(t.path, t.sha)
+    const listed = git(`git ls-tree -r ${HEAD}`).toString().trim().split(/\r?\n/).filter(Boolean)
+    const local = new Map()
+    for (const line of listed) {
+      const m = line.match(/^(\d+)\s+\w+\s+([0-9a-f]+)\t(.+)$/)
+      if (m) local.set(m[3], { mode: m[1], sha: m[2] })
+    }
+    changes = []
+    for (const [p, v] of local) {
+      if (remote.get(p) !== v.sha) changes.push({ status: remote.has(p) ? 'M' : 'A', path: p })
+    }
+    for (const p of remote.keys()) if (!local.has(p)) changes.push({ status: 'D', path: p })
+  }
+  if (!changes.length) { console.log('无差异'); return }
   const entries = []
-  for (const line of out.split(/\r?\n/)) {
-    const [status, ...rest] = line.split('\t')
-    const rel = rest.join('\t')
+  for (const { status, path: rel } of changes) {
     if (status === 'D') {
       entries.push({ path: rel, mode: '100644', type: 'blob', sha: null })
       console.log('  D', rel)
