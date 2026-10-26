@@ -20,7 +20,7 @@
   <img src="docs/screenshots/sample-compare.png" width="760" alt="抠图效果对比：原图 / 抠后">
 </p>
 
-<p align="center"><sub>上排是原图，下排是 CutCut 用 RMBG-2.0 跑出来的结果（棋盘格 = 透明区域）。两张都是原分辨率输出，没有裁剪、没有缩放。</sub></p>
+<p align="center"><sub>上排原图，下排是 CutCut 用 RMBG-2.0 的输出（棋盘格 = 透明区域）。输出保持原分辨率（2048×2048 / 1440×1080），这里只等比缩到 560px 宽排版，没有裁剪。</sub></p>
 
 ## 功能
 
