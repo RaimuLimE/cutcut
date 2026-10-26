@@ -1,6 +1,10 @@
 # CutCut · 一键抠图
 
-> 本地离线 AI 抠图桌面应用。双击即用，不联网、不上传、不要 Python。
+> 本地离线 AI 抠图桌面应用。双击即用，不联网、不上传、不要 Python、不要 ComfyUI。
+
+<p align="center">
+  <img src="docs/screenshots/app-dark.png" width="820" alt="CutCut 深色主题">
+</p>
 
 **下载安装包**：[**CutCut-Setup-1.4.1.exe**](https://github.com/RaimuLimE/cutcut/releases/latest) · 123 MB · Windows 10/11 x64
 
@@ -13,11 +17,10 @@
 推理全部在本机完成。图片不会离开你的电脑，断网也能用。
 
 <p align="center">
-  <img src="docs/screenshots/sample-anime.png" width="300" alt="二次元立绘抠图示例">
-  <img src="docs/screenshots/sample-photo.png" width="300" alt="实拍照片抠图示例">
+  <img src="docs/screenshots/sample-compare.png" width="760" alt="抠图效果对比：原图 / 抠后">
 </p>
 
-<p align="center"><sub>左：二次元立绘（森林背景） · 右：实拍照片（漫展现场）。都是 CutCut 用 RMBG-2.0 直接跑出来的结果，棋盘格表示透明区域。</sub></p>
+<p align="center"><sub>上排是原图，下排是 CutCut 用 RMBG-2.0 跑出来的结果（棋盘格 = 透明区域）。两张都是原分辨率输出，没有裁剪、没有缩放。</sub></p>
 
 ## 功能
 
