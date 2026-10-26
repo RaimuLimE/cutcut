@@ -6,6 +6,10 @@
   <img src="docs/screenshots/app-dark.png" width="820" alt="CutCut 深色主题">
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/app-light.png" width="820" alt="CutCut 浅色主题">
+</p>
+
 **下载安装包**：[**CutCut-Setup-1.4.1.exe**](https://github.com/RaimuLimE/cutcut/releases/latest) · 123 MB · Windows 10/11 x64
 
 ---
@@ -33,10 +37,6 @@
 | **四种入口** | 拖进窗口 · 资源管理器右键图片 · 浏览器右键网页图片 · `Ctrl+Alt+X` 抠剪贴板 |
 | **深浅色主题** | 浅色 / 深色 / **自动**（07:00–19:00 浅色，其余深色） |
 | **自定义安装位置** | 安装向导里可改路径，数据目录也能单独指定到别的盘 |
-
-<p align="center">
-  <img src="docs/screenshots/app-light.png" width="820" alt="CutCut 浅色主题">
-</p>
 
 ## 安装
 
