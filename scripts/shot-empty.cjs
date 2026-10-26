@@ -1,11 +1,12 @@
-// 深色主题 + 空工作区截图（1:1 CSS 像素）
-// 用法: node shot-dark-empty.cjs <port> <out.png> [w] [h]
+// 空工作区 + 指定主题截图（1:1 CSS 像素）
+// 用法: node shot-empty.cjs <port> <out.png> <theme> [w] [h]
 const fs = require('node:fs')
 
 const port = process.argv[2]
 const out = process.argv[3]
-const W = parseInt(process.argv[4] || '1180', 10)
-const H = parseInt(process.argv[5] || '780', 10)
+const theme = process.argv[4] || 'dark'
+const W = parseInt(process.argv[5] || '1180', 10)
+const H = parseInt(process.argv[6] || '940', 10)
 
 ;(async () => {
   const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()
@@ -31,20 +32,19 @@ const H = parseInt(process.argv[5] || '780', 10)
   await cmd('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: false })
   await new Promise((r) => setTimeout(r, 800))
 
-  // 清空工作区 + 切深色 + 状态复位
   await ev(`(() => {
     state.items.length = 0; seq = 0; state.running = false;
     render(); updateCounter();
     const s = document.querySelector('#status'); if (s) s.textContent = '就绪';
   })()`)
-  await ev(`applyTheme('dark', { persist: false })`)
-  await new Promise((r) => setTimeout(r, 400))
+  await ev(`applyTheme('${theme}', { persist: false })`)
+  await new Promise((r) => setTimeout(r, 500))
 
   console.log('theme  :', val(await ev(`document.documentElement.dataset.theme`)))
+  console.log('bodyBg :', val(await ev(`getComputedStyle(document.body).backgroundColor`)))
   console.log('items  :', val(await ev(`state.items.length`)))
-  console.log('status :', val(await ev(`document.querySelector('#status').textContent`)))
-  console.log('counter:', val(await ev(`document.querySelector('#counter')?.textContent || ''`)))
   console.log('grid   :', val(await ev(`document.querySelectorAll('.grid .card').length`)))
+  console.log('overflow:', val(await ev(`[...document.querySelectorAll('aside *')].filter(e => e.scrollWidth > e.clientWidth + 1).length`)))
 
   await ev(`new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))`)
   const shot = await cmd('Page.captureScreenshot', { format: 'png', fromSurface: true })
